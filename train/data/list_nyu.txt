@@ -1,0 +1,17 @@
+/data/NYUv2/image/test/00844.png
+/data/NYUv2/image/test/00802.png
+/data/NYUv2/image/test/00445.png
+/data/NYUv2/image/test/00533.png
+/data/NYUv2/image/test/00802.png
+/data/NYUv2/image/test/00961.png
+/data/NYUv2/image/test/00018.png
+/data/NYUv2/image/test/00172.png
+/data/NYUv2/image/test/00846.png
+/data/NYUv2/image/test/00088.png
+/data/NYUv2/image/test/01389.png
+/data/NYUv2/image/test/00677.png
+/data/NYUv2/image/test/00209.png
+/data/NYUv2/image/test/00965.png
+/data/NYUv2/image/test/00046.png
+/data/NYUv2/image/test/01162.png
+/data/NYUv2/image/test/01094.png
