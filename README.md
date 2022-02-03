@@ -3,8 +3,24 @@ Zhengqin Li, Mohammad Shafiei, Ravi Ramamoorthi, Kalyan Sunkavalli, Manmohan Cha
 ## 0.1 To run locally
 Install Conda and create environment:
 
+https://docs.conda.io/en/latest/miniconda.html
+
+```
+conda create -n  python=3.8
+conda activate py38
+conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch
+cd /{}data
+git clone https://github.com/{}/indoorInverse.git # change to your forked repo so that it's yours
+cd indoorInverse/train
+pip install -r requirements.txt
+```
+
 ```
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 5321 --nproc_per_node=1 train/trainBRDFLight.py --task_name trainBRDF_locally --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_ro_no_de MODEL_BRDF.loss_list al_ro_no_de DATA.data_read_list al_ro_no_de DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True
+```
+
+```
+
 ```
 
 ## 0.2 To run on the cluster
@@ -31,15 +47,7 @@ kubectl get pods -ww # get the full name of yoru deployment
 kubectl exec -it {}-deployment{} -- /bin/bash
 ```
 
-Install Conda and create environment:
-```
-conda install pytorch==1.8.0 torchvision==0.9.0 torchaudio==0.8.0 cudatoolkit=10.2 -c pytorch
-cd /{}data
-git clone https://github.com/{}/indoorInverse.git # change to your forked repo so that it's yours
-cd indoorInverse/train
-pip install -r requirements
-
-```
+Install Conda and create environment.
 
 ### Create temporary pod and run within
 

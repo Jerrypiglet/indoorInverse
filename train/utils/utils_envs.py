@@ -50,7 +50,10 @@ def set_up_envs(opt):
     if opt.data_root is not None:
         opt.cfg.DATASET.dataset_path = opt.data_root
 
-    opt.cfg.DATASET.dataset_list = os.path.join(opt.cfg.PATH.total3D_lists_path, 'list')
+    if opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR:
+        # assert False, 'paths not correctly configured! (we use Zhengqins test set as val set, but they are in a different path (/eccv20dataset/DatasetNew_test) than the main dataset'
+        opt.cfg.PATH.OR_lists_path = opt.cfg.PATH.OR_lists_path_zhengqinCVPR
+    opt.cfg.DATASET.dataset_list = os.path.join(opt.cfg.PATH.OR_lists_path, 'list')
 
     if opt.cfg.DATASET.mini:
         opt.cfg.DATASET.dataset_path = opt.cfg.DATASET.dataset_path_mini

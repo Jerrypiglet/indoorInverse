@@ -55,6 +55,9 @@ class openrooms(data.Dataset):
         self.task = self.split if task is None else task
         self.if_for_training = if_for_training
         self.data_root = self.opt.cfg.DATASET.dataset_path
+        if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
+            self.data_root = '/ruidata/openrooms_raw_BRDF_test'
+            
         split_to_list = {'train': 'train.txt', 'val': 'val.txt', 'test': 'test.txt'}
         data_list = os.path.join(self.cfg.PATH.root, self.cfg.DATASET.dataset_list)
         data_list = os.path.join(data_list, split_to_list[split])

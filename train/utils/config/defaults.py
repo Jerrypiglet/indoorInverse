@@ -26,17 +26,17 @@ _C.MM1_DEBUG = False
 _C.PATH = CN()
 _C.PATH.cluster_names = ['kubectl']
 _C.PATH.root = ''
-_C.PATH.root_local = '/home/ruizhu/Documents/Projects/semanticInverse/train'
+_C.PATH.root_local = '/home/ruizhu/Documents/Projects/indoorInverse/train'
 _C.PATH.root_cluster = ['.', '.', '.']
 
-_C.PATH.total3D_lists_path = 'data/openrooms/list_OR_V4full'
-_C.PATH.total3D_lists_path_if_zhengqinCVPR = False
-_C.PATH.total3D_lists_path_zhengqinCVPR = 'data/openrooms/list_OR_V4full_zhengqinCVPR'
+_C.PATH.OR_lists_path = 'data/openrooms/list_OR_V4full'
+_C.PATH.OR_lists_path_if_zhengqinCVPR = False
+_C.PATH.OR_lists_path_zhengqinCVPR = 'data/openrooms/list_OR_V4full_zhengqinCVPR'
 
 _C.PATH.matcls_matIdG1_path = 'data/openrooms/matIdGlobal1.txt'
 _C.PATH.matcls_matIdG2_path = 'data/openrooms/matIdGlobal2.txt'
 _C.PATH.torch_home_path = ''
-_C.PATH.torch_home_local = '/home/ruizhu/Documents/Projects/semanticInverse/'
+_C.PATH.torch_home_local = '/home/ruizhu/Documents/Projects/indoorInverse/'
 _C.PATH.torch_home_cluster = ['/ruidata/semanticInverse/']
 _C.PATH.pretrained_path = ''
 _C.PATH.pretrained_local = '/home/ruizhu/Documents/Projects/semanticInverse/pretrained'
@@ -69,11 +69,11 @@ _C.DATASET.dataset_name = 'openrooms'
 _C.DATASET.dataset_path = ''
 _C.DATASET.dataset_path_local = '/home/ruizhu/Documents/Projects/semanticInverse/dataset/openrooms'
 _C.DATASET.dataset_path_local_quarter = '/ruidata/openrooms_raw_quarter'
-_C.DATASET.dataset_path_cluster = ['/siggraphasia20dataset/code/Routine/DatasetCreation/', '', '/datasets_mount/']
-_C.DATASET.dataset_path_binary = ''
+_C.DATASET.dataset_path_cluster = ['/siggraphasia20dataset/code/Routine/DatasetCreation/']
+# _C.DATASET.dataset_path_binary = ''
 _C.DATASET.dataset_path_local_fast_BRDF = '/ruidata/openrooms_raw_BRDF'
 
-_C.DATASET.real_images_root_path = '/home/ruizhu/Documents/Projects/semanticInverse'
+_C.DATASET.real_images_root_path = '/home/ruizhu/Documents/Projects/indoorInverse'
 _C.DATASET.real_images_list_path = 'data/list_real_20.txt'
 
 _C.DATASET.iiw_path = ''
@@ -87,7 +87,7 @@ _C.DATASET.nyud_path_cluster = ['', '', '']
 _C.DATASET.nyud_list_path = 'data/nyud/list'
 
 _C.DATASET.dataset_path_test = ''
-_C.DATASET.dataset_path_test_local = '/home/ruizhu/Documents/Projects/semanticInverse/dataset/openrooms_test'
+_C.DATASET.dataset_path_test_local = '/home/ruizhu/Documents/Projects/indoorInverse/dataset/openrooms_test'
 _C.DATASET.dataset_path_test_cluster = ['/eccv20dataset/DatasetNew_test']
 _C.DATASET.png_path = ''
 _C.DATASET.png_path_local = '/data/ruizhu/OR-pngs'
@@ -95,7 +95,7 @@ _C.DATASET.png_path_cluster = ['/siggraphasia20dataset/pngs']
 
 _C.DATASET.envmap_path = ''
 _C.DATASET.envmap_path_local = '/home/ruizhu/Documents/data/EnvDataset/'
-_C.DATASET.envmap_path_cluster = ['/siggraphasia20dataset/EnvDataset/', '', '']
+_C.DATASET.envmap_path_cluster = ['/siggraphasia20dataset/EnvDataset/']
 
 _C.DATASET.dataset_list = ''
 _C.DATASET.dataset_path_mini = ''

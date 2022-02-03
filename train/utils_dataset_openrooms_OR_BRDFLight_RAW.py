@@ -90,18 +90,17 @@ def make_dataset(opt, split, task, data_root=None, data_list=None, logger=None):
 
     logger.info("==> Checking image&label pair [%s] list done! %d frames."%(split, len(image_label_list)))
 
-    all_scenes = get_valid_scenes(opt, data_list, split, logger=logger)
-
+    all_scenes = []
     if opt.cfg.DATASET.first_scenes != -1:
         # return image_label_list[:opt.cfg.DATASET.first_scenes], meta_split_scene_name_frame_id_list[:opt.cfg.DATASET.first_scenes]
         assert False
     # elif opt.cfg.DATASET.if_quarter and task != 'vis':
     elif opt.cfg.DATASET.if_quarter and task in ['train']:
         meta_split_scene_name_frame_id_list_quarter = return_percent(meta_split_scene_name_frame_id_list, 0.25)
+        all_scenes = get_valid_scenes(opt, data_list, split, logger=logger)
         all_scenes = list(set(['/'.join([x[0], x[1]]) for x in meta_split_scene_name_frame_id_list_quarter]))
         all_scenes = [x.split('/') for x in all_scenes]
         return return_percent(image_label_list, 0.25), meta_split_scene_name_frame_id_list_quarter, all_scenes
-
     else:
         return image_label_list, meta_split_scene_name_frame_id_list, all_scenes
 
