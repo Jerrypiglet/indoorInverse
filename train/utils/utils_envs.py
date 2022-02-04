@@ -224,11 +224,11 @@ def set_up_folders(opt):
     # >>>> SUMMARY WRITERS
     if opt.if_cluster:
         if opt.cluster == 'kubectl':
-            opt.home_path = Path('/ruidata/semanticInverse/') 
+            opt.home_path = Path('/ruidata/indoorInverse/') 
         elif opt.cluster == 'nvidia':
             opt.home_path = Path('/home/ruzhu/Documents/Projects/')
         elif opt.cluster == 'ngc':
-            opt.home_path = Path('/newfoundland/semanticInverse/')
+            opt.home_path = Path('/newfoundland/indoorInverse/')
             # opt.SUMMARY_PATH_ALL = opt.home_path / SUMMARY_PATH
             # opt.home_path_tmp = Path('/result/')
 

@@ -21,7 +21,7 @@ spec:
       #   kubernetes.io/hostname: k8s-haosu-10.sdsc.optiputer.net
       containers:
       - name: container
-        image: docker.io/jerrypiglet/deeplearningconda38v620210723cuda102
+        image: jerrypiglet/rui_conda_inverse:public
         args: ["sleep", "infinity"]
         resources:  
           requests:
@@ -35,8 +35,8 @@ spec:
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm
-        - name: ORindept
-          mountPath: /ORindept
+        - name: openroomsindept
+          mountPath: /openroomsindept
         - name: {}data
           mountPath: /{}data
 

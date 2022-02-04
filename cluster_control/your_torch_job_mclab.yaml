@@ -1,0 +1,71 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: {}-torch-job-gpu
+  # namespace: ucsd-haosulab
+  namespace: "#NAMESPACE"
+  labels:
+    user: {}  # Specify your name
+spec:
+  ttlSecondsAfterFinished: 86400  # Wait one day to delete completed jobs
+  template:
+    spec:
+      # nodeSelector:
+      #   kubernetes.io/hostname: k8s-haosu-04.sdsc.optiputer.net
+      containers:
+      - name: gpu-container-{}
+        image: jerrypiglet/rui_conda_inverse:public
+        imagePullPolicy: IfNotPresent
+        command:
+        - "sh"
+        - "-c"
+        args:
+        - "which python && . /root/miniconda3/etc/profile.d/conda.sh && conda activate /{}data/envs/py38 && which python && export TORCH_HOME=/{}data/ && "
+        resources:
+          requests:
+            cpu: "#CPUR" # "20"
+            memory: "#MEMRGi"  #"50Gi"
+            nvidia.com/gpu: '#GPUS'
+          limits:
+            cpu: "#CPUL" #"30"
+            memory: "#MEMLGi" #"100Gi"
+            nvidia.com/gpu: '#GPUS'
+        volumeMounts:
+          - name: dshm
+            mountPath: /dev/shm 
+          - name: {}data
+            mountPath: /{}data
+          - name: openroomsindept
+            mountPath: /openroomsindept
+
+      volumes:
+      - name: dshm  # shared memory
+        emptyDir:
+          medium: Memory
+      - name: openroomsindept
+        persistentVolumeClaim:
+            claimName: openroomsindept 
+      - name: {}data
+        persistentVolumeClaim:
+            claimName: {}data
+      restartPolicy: Never
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nautilus.io/group
+                operator: In
+                values:
+                - haosu
+              # - key: nautilus.io/group
+              #   operator: NotIn
+              #   values:
+              #   - k8s-haosu-01.sdsc.optiputer.net
+              - key: gpu-type
+                operator: In
+                values:
+                # - 1080Ti
+                - 2080Ti
+                # - TITANRTX
+  backoffLimit: 2

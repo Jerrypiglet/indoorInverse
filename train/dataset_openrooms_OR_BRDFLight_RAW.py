@@ -58,10 +58,19 @@ class openrooms(data.Dataset):
         if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
             self.data_root = '/ruidata/openrooms_raw_BRDF_test'
             
+        self.hdr_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imhdr'
+        self.png_root = Path(self.opt.cfg.DATASET.png_path) if not self.opt.if_cluster else Path(self.data_root)/'impng'
+        self.mask_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'immask'
+        self.cadmatobj_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imcadmatobj'
+        self.baseColor_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imbaseColor'
+        self.normal_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imnormal'
+        self.roughness_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imroughness'
+        self.depth_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imdepth'
+
         split_to_list = {'train': 'train.txt', 'val': 'val.txt', 'test': 'test.txt'}
         data_list = os.path.join(self.cfg.PATH.root, self.cfg.DATASET.dataset_list)
         data_list = os.path.join(data_list, split_to_list[split])
-        self.data_list, self.meta_split_scene_name_frame_id_list, self.all_scenes_list = make_dataset(opt, split, self.task, self.data_root, data_list, logger=self.logger)
+        self.data_list, self.meta_split_scene_name_frame_id_list, self.all_scenes_list = make_dataset(opt, split, self.task, str(self.hdr_root), data_list, logger=self.logger)
         assert len(self.data_list) == len(self.meta_split_scene_name_frame_id_list)
         if load_first != -1:
             self.data_list = self.data_list[:load_first] # [('/data/ruizhu/openrooms_mini-val/mainDiffLight_xml1/scene0509_00/im_1.hdr', '/data/ruizhu/openrooms_mini-val/main_xml1/scene0509_00/imsemLabel_1.npy'), ...
@@ -93,10 +102,10 @@ class openrooms(data.Dataset):
         meta_split, scene_name, frame_id = self.meta_split_scene_name_frame_id_list[index]
         assert frame_id > 0
 
-        if self.opt.cfg.DATASET.tmp:
-            png_image_path = Path(hdr_image_path.replace('.hdr', '.png').replace('.rgbe', '.png'))
-        else:
-            png_image_path = Path(self.opt.cfg.DATASET.png_path) / meta_split / scene_name / ('im_%d.png'%frame_id)
+        # if self.opt.cfg.DATASET.tmp:
+        #     png_image_path = Path(hdr_image_path.replace('.hdr', '.png').replace('.rgbe', '.png'))
+        # else:
+        png_image_path = self.png_root / meta_split / scene_name / ('im_%d.png'%frame_id)
         frame_info = {'index': index, 'meta_split': meta_split, 'scene_name': scene_name, 'frame_id': frame_id, 'frame_key': '%s-%s-%d'%(meta_split, scene_name, frame_id), \
             'png_image_path': png_image_path}
         batch_dict = {'image_index': index, 'frame_info': frame_info}
@@ -106,11 +115,13 @@ class openrooms(data.Dataset):
         self.opt.if_load_immask = if_load_immask
 
         if if_load_immask:
-            seg_path = hdr_image_path.replace('im_', 'immask_').replace('hdr', 'png').replace('DiffMat', '')
+            seg_path = self.mask_root / (meta_split.replace('DiffMat', '')) / scene_name / ('immask_%d.png'%frame_id)
+            # seg_path = hdr_image_path.replace('im_', 'immask_').replace('hdr', 'png').replace('DiffMat', '')
             # Read segmentation
             seg = 0.5 * (self.loadImage(seg_path ) + 1)[0:1, :, :]
-            semantics_path = hdr_image_path.replace('DiffMat', '').replace('DiffLight', '')
-            mask_path = semantics_path.replace('im_', 'imcadmatobj_').replace('hdr', 'dat')
+            # semantics_path = hdr_image_path.replace('DiffMat', '').replace('DiffLight', '')
+            # mask_path = semantics_path.replace('im_', 'imcadmatobj_').replace('hdr', 'dat')
+            mask_path = self.cadmatobj_root / (meta_split.replace('DiffMat', '').replace('DiffLight', '')) / scene_name / ('imcadmatobj_%d.dat'%frame_id)
             mask = self.loadBinary(mask_path, channels = 3, dtype=np.int32, if_resize=True, modality='mask').squeeze() # [h, w, 3]
         else:
             seg = np.ones((1, self.im_height, self.im_width), dtype=np.float32)
@@ -192,11 +203,15 @@ class openrooms(data.Dataset):
 
     def load_brdf_lighting(self, hdr_image_path, if_load_immask, mask_path, mask, seg, seg_ori, hdr_scale, frame_info):
         batch_dict_brdf = {}
+        meta_split = frame_info['meta_split']
+        scene_name = frame_info['scene_name']
+        frame_id = frame_info['frame_id']
         # Get paths for BRDF params
         # print(self.cfg.DATA.load_brdf_gt, self.cfg.DATA.data_read_list)
         if self.cfg.DATA.load_brdf_gt:
             if 'al' in self.cfg.DATA.data_read_list:
-                albedo_path = hdr_image_path.replace('im_', 'imbaseColor_').replace('rgbe', 'png').replace('hdr', 'png')
+                # albedo_path = hdr_image_path.replace('im_', 'imbaseColor_').replace('rgbe', 'png').replace('hdr', 'png')
+                albedo_path = str(self.baseColor_root / meta_split / scene_name / ('imbaseColor_%d.png'%frame_id))
                 if self.opt.cfg.DATASET.dataset_if_save_space:
                     albedo_path = albedo_path.replace('DiffLight', '')
                 # Read albedo
@@ -208,7 +223,8 @@ class openrooms(data.Dataset):
                 batch_dict_brdf.update({'albedo': torch.from_numpy(albedo)})
 
             if 'no' in self.cfg.DATA.data_read_list:
-                normal_path = hdr_image_path.replace('im_', 'imnormal_').replace('rgbe', 'png').replace('hdr', 'png')
+                # normal_path = hdr_image_path.replace('im_', 'imnormal_').replace('rgbe', 'png').replace('hdr', 'png')
+                normal_path = str(self.normal_root / meta_split / scene_name / ('imnormal_%d.png'%frame_id))
                 if self.opt.cfg.DATASET.dataset_if_save_space:
                     normal_path = normal_path.replace('DiffLight', '').replace('DiffMat', '')
                 # normalize the normal vector so that it will be unit length
@@ -221,7 +237,8 @@ class openrooms(data.Dataset):
                 batch_dict_brdf.update({'normal': torch.from_numpy(normal),})
 
             if 'ro' in self.cfg.DATA.data_read_list:
-                rough_path = hdr_image_path.replace('im_', 'imroughness_').replace('rgbe', 'png').replace('hdr', 'png')
+                # rough_path = hdr_image_path.replace('im_', 'imroughness_').replace('rgbe', 'png').replace('hdr', 'png')
+                rough_path = str(self.roughness_root / meta_split / scene_name / ('imroughness_%d.png'%frame_id))
                 if self.opt.cfg.DATASET.dataset_if_save_space:
                     rough_path = rough_path.replace('DiffLight', '')
                 frame_info['rough_path'] = rough_path
@@ -233,7 +250,8 @@ class openrooms(data.Dataset):
                 batch_dict_brdf.update({'rough': torch.from_numpy(rough),})
 
             if 'de' in self.cfg.DATA.data_read_list or 'de' in self.cfg.DATA.data_read_list:
-                depth_path = hdr_image_path.replace('im_', 'imdepth_').replace('rgbe', 'dat').replace('hdr', 'dat')
+                # depth_path = hdr_image_path.replace('im_', 'imdepth_').replace('rgbe', 'dat').replace('hdr', 'dat')
+                depth_path = str(self.depth_root / meta_split / scene_name / ('imdepth_%d.dat'%frame_id))
                 if self.opt.cfg.DATASET.dataset_if_save_space:
                     depth_path = depth_path.replace('DiffLight', '').replace('DiffMat', '')
                 frame_info['depth_path'] = depth_path
@@ -274,7 +292,7 @@ class openrooms(data.Dataset):
         #     segEnv = self.extra_op(segEnv, if_channel_first=True, name='segEnv')
         #     segArea = self.extra_op(segArea, if_channel_first=True, name='segArea')
 
-        
+        assert not(self.opt.if_cluster and self.opt.cfg.DATA.load_light_gt), 'lighting data on the cluster is not ready yet'
         if self.opt.cfg.DATA.load_light_gt:
             if self.cascadeLevel == 0:
                 env_path = hdr_image_path.replace('im_', 'imenv_')
@@ -346,7 +364,7 @@ class openrooms(data.Dataset):
         # if if_load_immask:
         batch_dict_brdf.update({
                 'mask': torch.from_numpy(mask), 
-                'maskPath': mask_path, 
+                'maskPath': str(mask_path), 
                 'segArea': torch.from_numpy(segArea),
                 'segEnv': torch.from_numpy(segEnv),
                 'segObj': torch.from_numpy(segObj),

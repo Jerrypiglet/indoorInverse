@@ -15,7 +15,6 @@ from train_funcs_light import get_labels_dict_light, postprocess_light
 
 
 from utils.utils_metrics import compute_errors_depth_nyu
-from pytorch_lightning.metrics import Accuracy
 
 from icecream import ic
 import pickle

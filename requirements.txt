@@ -30,3 +30,4 @@ tensorboardX
 timm
 iopath
 ipympl
+jupyterlab
