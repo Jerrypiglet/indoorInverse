@@ -42,6 +42,7 @@ def set_up_envs(opt):
 
     opt.cfg.DATASET.png_path = opt.cfg.DATASET.png_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_local
     opt.cfg.DATASET.dataset_path_mini = opt.cfg.DATASET.dataset_path_mini_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_mini_local
+    opt.cfg.DATASET.png_path_mini = opt.cfg.DATASET.png_path_mini_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_mini_local
     opt.cfg.DATASET.envmap_path = opt.cfg.DATASET.envmap_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.envmap_path_local
 
     opt.cfg.DATASET.iiw_path = opt.cfg.DATASET.iiw_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.iiw_path_local
@@ -58,6 +59,7 @@ def set_up_envs(opt):
     if opt.cfg.DATASET.mini:
         opt.cfg.DATASET.dataset_path = opt.cfg.DATASET.dataset_path_mini
         opt.cfg.DATASET.dataset_list = opt.cfg.DATASET.dataset_list_mini
+        opt.cfg.DATASET.png_path = opt.cfg.DATASET.png_path_mini
     opt.cfg.DATASET.dataset_list = os.path.join(opt.cfg.PATH.root, opt.cfg.DATASET.dataset_list)
 
     print('======= DATASET.dataset_path ', opt.cfg.DATASET.dataset_path)

@@ -91,6 +91,8 @@ _C.DATASET.dataset_path_test_local = '/home/ruizhu/Documents/Projects/indoorInve
 _C.DATASET.dataset_path_test_cluster = ['/openroomsindept']
 _C.DATASET.png_path = ''
 _C.DATASET.png_path_local = '/data/ruizhu/OR-pngs'
+_C.DATASET.png_path_mini_local = '/data/ruizhu/ORmini-pngs'
+_C.DATASET.png_path_mini_cluster = ['']
 _C.DATASET.png_path_cluster = ['/siggraphasia20dataset/pngs']
 
 _C.DATASET.envmap_path = ''
