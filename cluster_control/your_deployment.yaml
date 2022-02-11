@@ -25,7 +25,7 @@ spec:
         args: ["sleep", "infinity"]
         resources:  
           requests:
-            cpu: "100m"
+            cpu: "100"
             memory: "2Gi"
             # nvidia.com/gpu: 1
           limits:
@@ -41,9 +41,12 @@ spec:
           mountPath: /{}data
 
       volumes:
-      - name: ruidata
+      - name: {}data
         persistentVolumeClaim:
-            claimName: ruidata
+            claimName: {}data
+      - name: openroomsindept
+        persistentVolumeClaim:
+            claimName: openroomsindept 
       - name: dshm
         emptyDir:
           medium: Memory
