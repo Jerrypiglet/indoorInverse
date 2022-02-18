@@ -103,7 +103,14 @@ On your browser open the link printed out from Jupyter lab (e.g. http://localhos
 
 **NOTE:** Your pod will like be flagged red due to low resource usage, and you will need to terminate your current pods to launch new ones after two on-going violations.
 
-### Create job for training/batch evaluating
+Launch a testing job within the terminal of Jupyter Lab:
+```
+CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 5321 --nproc_per_node=1 train/trainBRDFLight.py --task_name testBRDF_locally --if_cluster --if_train False --if_val False --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_ro_no_de MODEL_BRDF.loss_list al_ro_no_de DATA.data_read_list al_ro_no_de DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True
+```
+
+The logged Tensorboard files will be saved to `/logs` of the root path of the repo. You can launch a tensorboard instance within the terminal and forward to your local machine to inspect the results.
+
+### Submit a job for training/batch evaluating
 ```
 (py38) ruizhu@ubuntu:~/Documents/Projects/indoorInverse/cluster_control$ python your_tool.py create -d --gpus 2 -f your_torch_job_mclab.yaml --memr 40 --meml 70 --cpur 25 --cpul 45 -s 'python -m torch.distributed.launch --master_port 5320 --nproc_per_node=2  trainBRDFLight.py --if_cluster --task_name DATE-train_POD_trainBRDF_scratch --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True'
 ```
