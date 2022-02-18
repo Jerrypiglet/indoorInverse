@@ -37,13 +37,13 @@ _C.PATH.matcls_matIdG1_path = 'data/openrooms/matIdGlobal1.txt'
 _C.PATH.matcls_matIdG2_path = 'data/openrooms/matIdGlobal2.txt'
 _C.PATH.torch_home_path = ''
 _C.PATH.torch_home_local = '/home/ruizhu/Documents/Projects/indoorInverse/'
-_C.PATH.torch_home_cluster = ['/ruidata/indoorInverse/']
+_C.PATH.torch_home_cluster = ['/nityaagarwaldata/indoorInverse/']
 _C.PATH.pretrained_path = ''
 _C.PATH.pretrained_local = '/home/ruizhu/Documents/Projects/semanticInverse/pretrained'
-_C.PATH.pretrained_cluster = ['/ruidata/indoorInverse/pretrained']
+_C.PATH.pretrained_cluster = ['/nityaagarwaldata/indoorInverse/pretrained']
 _C.PATH.models_ckpt_path = ''
 _C.PATH.models_ckpt_local = '/home/ruizhu/Documents/Projects/semanticInverse/models_ckpt'
-_C.PATH.models_ckpt_cluster = ['/ruidata/indoorInverse/models_ckpt', '', '']
+_C.PATH.models_ckpt_cluster = ['/nityaagarwaldata/indoorInverse/models_ckpt', '', '']
 
 # ===== debug
 
@@ -71,13 +71,13 @@ _C.DATASET.dataset_path_local = '/home/ruizhu/Documents/Projects/semanticInverse
 _C.DATASET.dataset_path_local_quarter = ''
 _C.DATASET.dataset_path_cluster = ['/openroomsindept']
 # _C.DATASET.dataset_path_binary = ''
-_C.DATASET.dataset_path_local_fast_BRDF = '/ruidata/openrooms_raw_BRDF'
+_C.DATASET.dataset_path_local_fast_BRDF = '/nityaagarwaldata/openrooms_raw_BRDF'
 
 _C.DATASET.real_images_root_path = '/home/ruizhu/Documents/Projects/indoorInverse'
 _C.DATASET.real_images_list_path = 'data/list_real_20.txt'
 
 _C.DATASET.iiw_path = ''
-_C.DATASET.iiw_path_local = '/ruidata/iiw-dataset/data'
+_C.DATASET.iiw_path_local = '/nityaagarwaldata/iiw-dataset/data'
 _C.DATASET.iiw_path_cluster = ['', '', '']
 _C.DATASET.iiw_list_path = 'data/iiw/list'
 

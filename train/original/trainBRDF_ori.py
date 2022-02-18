@@ -24,7 +24,7 @@ from train_funcs_brdf_ori_adapted_ import train_step, val_epoch, get_input_batch
 
 parser = argparse.ArgumentParser()
 # The locationi of training set
-parser.add_argument('--dataRoot', default='/ruidata/openrooms_raw_BRDF', help='path to input images')
+parser.add_argument('--dataRoot', default='/nityaagarwaldata/openrooms_raw_BRDF', help='path to input images')
 parser.add_argument('--experiment', default=None, help='the path to store samples and models')
 # The basic training setting
 parser.add_argument('--nepoch0', type=int, default=14, help='the number of epochs for training')
