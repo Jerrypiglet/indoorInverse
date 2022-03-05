@@ -35,16 +35,16 @@ spec:
             mountPath: /dev/shm 
           - name: {}data
             mountPath: /{}data
-          - name: openroomsindept
+          - name: openroomsindepthaosu
             mountPath: /openroomsindept
 
       volumes:
       - name: dshm  # shared memory
         emptyDir:
           medium: Memory
-      - name: openroomsindept
+      - name: openroomsindepthaosu
         persistentVolumeClaim:
-            claimName: openroomsindept 
+            claimName: openroomsindepthaosu 
       - name: {}data
         persistentVolumeClaim:
             claimName: {}data

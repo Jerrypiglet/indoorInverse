@@ -35,7 +35,7 @@ spec:
         volumeMounts:
         - name: dshm
           mountPath: /dev/shm
-        - name: openroomsindept
+        - name: openroomsindepthaosu
           mountPath: /openroomsindept
         - name: {}data
           mountPath: /{}data
@@ -44,9 +44,9 @@ spec:
       - name: {}data
         persistentVolumeClaim:
             claimName: {}data
-      - name: openroomsindeptpread
+      - name: openroomsindepthaosu
         persistentVolumeClaim:
-            claimName: openroomsindept 
+            claimName: openroomsindepthaosu 
       - name: dshm
         emptyDir:
           medium: Memory
