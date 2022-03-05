@@ -15,7 +15,7 @@ Checklist:
 <!-- wget https://repo.anaconda.com/miniconda/Miniconda3-latest-Linux-x86_64.sh -->
 <!-- bash Miniconda3-latest-Linux-x86_64.sh # choose Miniconda installation path as /{}data/miniconda3 -->
 
-```
+```bash
 conda create -n python=3.8
 conda activate py38
 
@@ -26,7 +26,7 @@ cd indoorInverse/train
 pip install -r requirements.txt
 ```
 
-```
+```bash
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 5321 --nproc_per_node=1 train/trainBRDFLight.py --task_name trainBRDF_locally --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_ro_no_de MODEL_BRDF.loss_list al_ro_no_de DATA.data_read_list al_ro_no_de DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True
 ```
 ## 1.2 To run on the cluster
@@ -39,7 +39,7 @@ kubectl config set-context --current --namespace=mc-lab
 
 Got to ./cluster_control/
 
-```
+```bash
 kubectl create -f your_pvc.yaml # repalce the {} with your name, and change the size if desired
 kubectl get pvc {}data # check pvc creation result
 ```
@@ -47,14 +47,17 @@ kubectl get pvc {}data # check pvc creation result
 ### Create a persistent pod and create your conda environment
 Go to ./cluster_control/
 
-```
+```bash
 kubectl create -f your_deployment.yaml # create a persistent job (deployment) with little resources usage
 kubectl get pods -ww # get the full name of yoru deployment
 kubectl exec -it {}-deployment{} -- /bin/bash
+mkdir tasks
+
 ```
 
 Create conda environment:
-```
+
+```bash
 cd /{}data
 mkdir envs
 
@@ -69,7 +72,8 @@ mkdir logs && mkdir Summary_vis && mkdir Checkpoint && mkdir job_list
 ```
 
 Download [pretrained checkpoints](http://cseweb.ucsd.edu/~viscomp/projects/CVPR20InverseIndoor/models.zip) to */{}data/indoorInverse/models_ckpt*:
-```
+
+```bash
 cd /{}data/indoorInverse
 mkdir models_ckpt
 cd models_ckpt
@@ -86,7 +90,7 @@ Important params to set in your script before you launch a job:
 
 Launch a pod with proper configurations **(with at least 1 GPU and proper CPU/memory)**:
 
-```
+```bash
 kubectl create -f your_deployment.yaml # create a persistent job (deployment); CHNAGE THE CONFIGURATIONS (GPU etc.)!
 kubectl exec -it {}-deployment{} -- /bin/bash
 which python && . /root/miniconda3/etc/profile.d/conda.sh && conda activate /{}data/envs/py38 && which python # make sure the output is your conda Python
@@ -95,7 +99,7 @@ jupyter lab --no-browser --port 6006 --allow-root
 
 Forward the port to your computer:
 
-```
+```bash
 kubectl port-forward {}-deployment{} 6006:6006
 ```
 
@@ -104,14 +108,14 @@ On your browser open the link printed out from Jupyter lab (e.g. http://localhos
 **NOTE:** Your pod will like be flagged red due to low resource usage, and you will need to terminate your current pods to launch new ones after two on-going violations.
 
 Launch a testing job within the terminal of Jupyter Lab:
-```
+```bash
 CUDA_VISIBLE_DEVICES=0 python -m torch.distributed.launch --master_port 5321 --nproc_per_node=1 train/trainBRDFLight.py --task_name testBRDF_locally --if_cluster --if_train False --if_val False --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_ro_no_de MODEL_BRDF.loss_list al_ro_no_de DATA.data_read_list al_ro_no_de DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True
 ```
 
 The logged Tensorboard files will be saved to `/logs` of the root path of the repo. You can launch a tensorboard instance within the terminal and forward to your local machine to inspect the results.
 
 ### Submit a job for training/batch evaluating
-```
+```bash
 (py38) ruizhu@ubuntu:~/Documents/Projects/indoorInverse/cluster_control$ python your_tool.py create -d --gpus 2 -f your_torch_job_mclab.yaml --memr 40 --meml 70 --cpur 25 --cpul 45 -s 'python -m torch.distributed.launch --master_port 5320 --nproc_per_node=2  trainBRDFLight.py --if_cluster --task_name DATE-train_POD_trainBRDF_scratch --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth True'
 ```
 
@@ -130,6 +134,11 @@ Not ready:
 - cascade > 1
 - test on real images (real images, IIW, nyud)
 - lighting data on the cluster and data loading of it
+  
+Training script used by Rui:
+```bash
+python rui_tool.py create -d --gpus 1 -f rui_torch_job_2gpu_v6_mclab.yaml --memr 20 --meml 50 --cpur 15 --cpul 30 -s 'python -m torch.distributed.launch --master_port 5320 --nproc_per_node=1 trainBRDFLight.py --if_cluster --task_name DATE-train_POD_trainBRDF_scratch --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 14 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height 240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.load_brdf_gt True DATA.if_load_png_not_hdr False DATASET.mini False MODEL_BRDF.load_pretrained_pth False'
+```
 
 ## 2. Useful links:
 * Project page: http://cseweb.ucsd.edu/~visco…/projects/CVPR20InverseIndoor/

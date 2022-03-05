@@ -122,10 +122,10 @@ class Model_Joint(nn.Module):
         if self.cfg.MODEL_LIGHT.enable:
             if self.cfg.MODEL_LIGHT.if_freeze:
                 self.LIGHT_Net.eval()
-            if self.opt.cfg.DATASET.if_no_gt_BRDF:
-                return_dict_light = self.forward_light_real(input_dict, return_dict_brdf=return_dict_brdf)
-            else:
-                return_dict_light = self.forward_light(input_dict, return_dict_brdf=return_dict_brdf)
+            # if self.opt.cfg.DATASET.if_no_gt_BRDF:
+            #     return_dict_light = self.forward_light_real(input_dict, return_dict_brdf=return_dict_brdf)
+            # else:
+            return_dict_light = self.forward_light(input_dict, return_dict_brdf=return_dict_brdf)
         else:
             return_dict_light = {}
         return_dict.update(return_dict_light)
@@ -433,78 +433,6 @@ class Model_Joint(nn.Module):
 
         return_dict.update({'renderedImPred': renderedImPred, 'renderedImPred_sdr': renderedImPred_sdr, 'pixelNum_render': pixelNum_render}) 
         return_dict.update({'LightNet_preds': {'axisPred': axisPred_ori, 'lambPred': lambPred_ori, 'weightPred': weightPred_ori, 'segEnvBatch': segEnvBatch, 'notDarkEnv': notDarkEnv}})
-
-        return return_dict
-    
-
-    def forward_light_real(self, input_dict, return_dict_brdf={}):
-        imBatch = input_dict['imBatch']
-        assert imBatch.shape[0]==1
-
-        im_h, im_w = input_dict['im_h_resized_to'], input_dict['im_w_resized_to']
-        # im_h, im_w = self.cfg.DATA.im_height_padded_to, self.cfg.DATA.im_width_padded_to
-        im_h = im_h//2*2
-        im_w = im_w//2*2
-
-        renderLayer = models_light.renderingLayer(isCuda = self.opt.if_cuda, 
-            imWidth=im_w//2, imHeight=im_h//2,  
-            envWidth = self.opt.cfg.MODEL_LIGHT.envWidth, envHeight = self.opt.cfg.MODEL_LIGHT.envHeight)
-        output2env = models_light.output2env(isCuda = self.opt.if_cuda, 
-            envWidth = self.opt.cfg.MODEL_LIGHT.envWidth, envHeight = self.opt.cfg.MODEL_LIGHT.envHeight, SGNum = self.opt.cfg.MODEL_LIGHT.SGNum )
-
-        # Normalize Albedo and depth
-        albedoInput = return_dict_brdf['albedoPred'].detach().clone()
-        depthInput = return_dict_brdf['depthPred'].detach().clone()
-        if self.cfg.MODEL_BRDF.depth_activation == 'tanh':
-            depthInput = 0.5 * (depthInput + 1) # [-1, 1] -> [0, 1]
-        normalInput = return_dict_brdf['normalPred'].detach().clone()
-        roughInput = return_dict_brdf['roughPred'].detach().clone()
-
-        segBRDFBatch = input_dict['segBRDFBatch']
-
-        axisPred_ori, lambPred_ori, weightPred_ori = self.forward_LIGHT_Net(input_dict, imBatch, albedoInput, depthInput, normalInput, roughInput)
-
-        imBatchSmall = F.interpolate(imBatch, scale_factor=0.5, mode="bilinear")
-        
-        return_dict = {}
-
-        envmapsPredImage, axisPred, lambPred, weightPred = output2env.output2env(axisPred_ori, lambPred_ori, weightPred_ori, if_postprocessing=not self.cfg.MODEL_LIGHT.use_GT_light_sg)
-
-        normal_input, rough_input = normalInput, roughInput
-
-        envmapsImage_input = envmapsPredImage
-
-        # print(im_h, im_w, normal_input.shape, envmapsImage_input.shape, albedoInput.shape, rough_input.shape, )
-        diffusePred, specularPred = renderLayer.forwardEnv(normalPred=normal_input.detach(), envmap=envmapsImage_input, diffusePred=albedoInput.detach(), roughPred=rough_input.detach())
-
-        if self.cfg.MODEL_LIGHT.use_scale_aware_loss:
-            diffusePredScaled, specularPredScaled = diffusePred, specularPred
-        else:
-            diffusePredScaled, specularPredScaled, _ = models_brdf.LSregressDiffSpec(
-                diffusePred.detach(),
-                specularPred.detach(),
-                imBatchSmall,
-                diffusePred, specularPred )
-
-        renderedImPred_hdr = diffusePredScaled + specularPredScaled
-        renderedImPred = renderedImPred_hdr
-        renderedImPred_sdr = torch.clamp(renderedImPred_hdr ** (1.0/2.2), 0, 1)
-
-        cDiff, cSpec = (torch.sum(diffusePredScaled) / torch.sum(diffusePred)).data.item(), ((torch.sum(specularPredScaled) ) / (torch.sum(specularPred) ) ).data.item()
-        if cSpec == 0:
-            cAlbedo = 1/ axisPred_ori.max().data.item()
-            cLight = cDiff / cAlbedo
-        else:
-            cLight = cSpec
-            cAlbedo = cDiff / cLight
-            cAlbedo = np.clip(cAlbedo, 1e-3, 1 / axisPred_ori.max().data.item() )
-            cLight = cDiff / cAlbedo
-        envmapsPredImage = envmapsPredImage * cLight
-        ic(cLight, envmapsPredImage.shape, envmapsPredImage.dtype)
-        ic(torch.max(envmapsPredImage), torch.min(envmapsPredImage), torch.median(envmapsPredImage), torch.mean(envmapsPredImage))
-
-        return_dict.update({'imBatchSmall': imBatchSmall, 'envmapsPredImage': envmapsPredImage, 'renderedImPred': renderedImPred, 'renderedImPred_sdr': renderedImPred_sdr}) 
-        return_dict.update({'LightNet_preds': {'axisPred': axisPred_ori, 'lambPred': lambPred_ori, 'weightPred': weightPred_ori}})
 
         return return_dict
 

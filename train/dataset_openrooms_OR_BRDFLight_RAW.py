@@ -56,7 +56,7 @@ class openrooms(data.Dataset):
         self.if_for_training = if_for_training
         self.data_root = self.opt.cfg.DATASET.dataset_path
         if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
-            self.data_root = '/nityaagarwaldata/openrooms_raw_BRDF_test'
+            self.data_root = '/ruidata/openrooms_raw_BRDF_test'
             
         self.hdr_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imhdr'
         self.png_root = Path(self.opt.cfg.DATASET.png_path) if not self.opt.if_cluster else Path(self.data_root)/'impng'
@@ -118,7 +118,7 @@ class openrooms(data.Dataset):
             seg_path = self.mask_root / (meta_split.replace('DiffMat', '')) / scene_name / ('immask_%d.png'%frame_id)
             # seg_path = hdr_image_path.replace('im_', 'immask_').replace('hdr', 'png').replace('DiffMat', '')
             # Read segmentation
-            seg = 0.5 * (self.loadImage(seg_path ) + 1)[0:1, :, :]
+            seg = 0.5 * (self.loadImage(str(seg_path) ) + 1)[0:1, :, :]
             # semantics_path = hdr_image_path.replace('DiffMat', '').replace('DiffLight', '')
             # mask_path = semantics_path.replace('im_', 'imcadmatobj_').replace('hdr', 'dat')
             mask_path = self.cadmatobj_root / (meta_split.replace('DiffMat', '').replace('DiffLight', '')) / scene_name / ('imcadmatobj_%d.dat'%frame_id)
@@ -310,7 +310,7 @@ class openrooms(data.Dataset):
 
             if self.opt.cfg.DEBUG.if_fast_light_labels:
                 if frame_info['meta_split']=='main_xml1':
-                    root_path_scene = '/nityaagarwaldata/openrooms_raw_light_main_xml1'
+                    root_path_scene = '/ruidata/openrooms_raw_light_main_xml1'
                 else:
                     root_path_scene = '/newdata/ruizhu/openrooms_raw_light'
                 env_path = env_path.replace(self.opt.cfg.DATASET.dataset_path_local, root_path_scene)
