@@ -60,3 +60,10 @@ train/models_def/model_nvidia/ssn/build/*
 notebooks/render_OR_sequence_scannetPoses-Copy1.ipynb
 notebooks/render_OR_sequence_scannetPoses-Copy2.ipynb
 notebooks/render_OR_sequence_scannetPoses-Copy3.ipynb
+cluster_control/README
+cluster_control/all_commands.txt
+cluster_control/or_pvc.yaml
+cluster_control/rui_deployment.yaml
+cluster_control/rui_pvc.yaml
+cluster_control/rui_tb_pod_ravi.yaml
+cluster_control/rui_torch_job_2gpu_v6_mclab.yaml

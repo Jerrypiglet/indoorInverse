@@ -31,3 +31,4 @@ timm
 iopath
 ipympl
 jupyterlab
+PyGEL3D
