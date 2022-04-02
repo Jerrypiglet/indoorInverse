@@ -22,7 +22,8 @@ print(sys.path)
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
+# from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
+from dataset_openrooms_OR_BRDFLight_pickles import openrooms_pickle, collate_fn_OR
 
 
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -185,7 +186,7 @@ from utils.utils_transforms import get_transform_BRDF
 transforms_train_BRDF = get_transform_BRDF('train', opt)
 transforms_val_BRDF = get_transform_BRDF('val', opt)
 
-openrooms_to_use = openrooms
+openrooms_to_use = openrooms_pickle
 make_data_loader_to_use = make_data_loader
     
 
@@ -245,7 +246,7 @@ if opt.if_overfit_train and opt.if_val:
     )
 
 if opt.if_vis:
-    brdf_dataset_val_vis = openrooms(opt, 
+    brdf_dataset_val_vis = openrooms_to_use(opt, 
         transforms_BRDF = transforms_val_BRDF, 
         cascadeLevel = opt.cascadeLevel, split = 'val', task='vis', if_for_training=False, load_first = opt.cfg.TEST.vis_max_samples, logger=logger)
     brdf_loader_val_vis, batch_size_val_vis = make_data_loader(
@@ -260,7 +261,7 @@ if opt.if_vis:
         if_distributed_override=False
     )
     if opt.if_overfit_train:
-        brdf_dataset_val_vis = openrooms(opt, 
+        brdf_dataset_val_vis = openrooms_to_use(opt, 
             transforms_BRDF = transforms_val_BRDF, 
             cascadeLevel = opt.cascadeLevel, split = 'train', task='vis', if_for_training=False, load_first = opt.cfg.TEST.vis_max_samples, logger=logger)
         brdf_loader_val_vis, batch_size_val_vis = make_data_loader(

@@ -11,7 +11,6 @@ def get_labels_dict_nyud(data_batch, opt, return_input_batch_as_list=False):
     input_dict['imBatch'] = im_cpu.cuda(non_blocking=True).contiguous()
 
     # if opt.cfg.DEBUG.if_test_real:
-    input_dict['pad_mask'] = data_batch['pad_mask'].cuda(non_blocking=True).contiguous()
     input_dict['im_h_resized_to'] = data_batch['im_h_resized_to']
     input_dict['im_w_resized_to'] = data_batch['im_w_resized_to']
 

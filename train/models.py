@@ -83,7 +83,6 @@ def LSregressDiffSpec(diff, spec, imOrig, diffOrig, specOrig ):
 
     return diffScaled, specScaled
 
-
 class encoder0(nn.Module ):
     def __init__(self, cascadeLevel = 0, isSeg = False):
         super(encoder0, self).__init__()

@@ -73,6 +73,11 @@ _C.DATASET.dataset_path_cluster = ['/openroomsindept']
 # _C.DATASET.dataset_path_binary = ''
 _C.DATASET.dataset_path_local_fast_BRDF = '/ruidata/openrooms_raw_BRDF'
 
+_C.DATASET.dataset_path_pickle = ''
+_C.DATASET.dataset_path_pickle_local = '/home/ruizhu/Documents/Projects/DPTSSN/dataset/ORfull-perFramePickles-240x320-fullBRDF-semseg'
+_C.DATASET.dataset_path_pickle_cluster = ['/ruidata/ORfull-perFramePickles-240x320-fullBRDF-semseg']
+
+
 _C.DATASET.real_images_root_path = '/home/ruizhu/Documents/Projects/indoorInverse'
 _C.DATASET.real_images_list_path = 'data/list_real_20.txt'
 
@@ -120,31 +125,30 @@ _C.DATASET.if_no_gt_light = False
 # ===== data loading configs
 
 _C.DATA = CN()
-_C.DATA.if_load_png_not_hdr = False # load png as input image instead of hdr image
+_C.DATA.if_load_png_not_hdr = True # load png as input image instead of hdr image
 _C.DATA.if_augment_train = False
 _C.DATA.im_height = 240
 _C.DATA.im_width = 320
-_C.DATA.im_height_padded_to = 256
-_C.DATA.im_width_padded_to = 320
-_C.DATA.im_height_ori = 480
-_C.DATA.im_width_ori = 640
+_C.DATA.im_height_ori = 240
+_C.DATA.im_width_ori = 320
 _C.DATA.load_brdf_gt = True
-_C.DATA.load_masks = False
 _C.DATA.load_light_gt = False
+_C.DATA.load_semseg_gt = False
+_C.DATA.load_masks = False
 _C.DATA.data_read_list = ''
 _C.DATA.data_read_list_allowed = ['al', 'no', 'de', 'ro', 'li']
 
 _C.DATA.iiw = CN()
 _C.DATA.iiw.im_height = 341
 _C.DATA.iiw.im_width = 512
-_C.DATA.iiw.im_height_padded_to = 256
-_C.DATA.iiw.im_width_padded_to = 320
+# _C.DATA.iiw.im_height_padded_to = 256
+# _C.DATA.iiw.im_width_padded_to = 320
 
 _C.DATA.nyud = CN()
 _C.DATA.nyud.im_height = 480
 _C.DATA.nyud.im_width = 640
-_C.DATA.nyud.im_height_padded_to = 256
-_C.DATA.nyud.im_width_padded_to = 320
+# _C.DATA.nyud.im_height_padded_to = 256
+# _C.DATA.nyud.im_width_padded_to = 320
 
 # ===== BRDF
 _C.MODEL_BRDF = CN()
@@ -173,6 +177,10 @@ _C.MODEL_BRDF.pretrained_if_load_Bs = False
 
 _C.MODEL_BRDF.encoder_exclude = '' # e.g. 'x4_x5
 _C.MODEL_BRDF.use_scale_aware_albedo = False # [default: False] set to False to use **scale-invariant** loss for albedo
+
+_C.MODEL_BRDF.albedo = CN()
+_C.MODEL_BRDF.albedo.if_HDR = False # compute albedo in SDR instead of pseudo-HDR
+
 _C.MODEL_BRDF.loss = CN()
 _C.MODEL_BRDF.loss.if_use_reg_loss_depth = False
 _C.MODEL_BRDF.loss.reg_loss_depth_weight = 0.5

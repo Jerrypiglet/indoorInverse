@@ -37,6 +37,9 @@ spec:
             mountPath: /{}data
           - name: openroomsindepthaosu
             mountPath: /openroomsindept
+          - name: ruidatamclab
+            mountPath: /ruidata
+
 
       volumes:
       - name: dshm  # shared memory
@@ -45,6 +48,9 @@ spec:
       - name: openroomsindepthaosu
         persistentVolumeClaim:
             claimName: openroomsindepthaosu 
+      - name: ruidatamclab
+        persistentVolumeClaim:
+            claimName: ruidatamclab
       - name: {}data
         persistentVolumeClaim:
             claimName: {}data

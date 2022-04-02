@@ -39,6 +39,7 @@ def set_up_envs(opt):
     if opt.cfg.DATASET.if_quarter and not opt.if_cluster:
         opt.cfg.DATASET.dataset_path_local = opt.cfg.DATASET.dataset_path_local_quarter
     opt.cfg.DATASET.dataset_path = opt.cfg.DATASET.dataset_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_local
+    opt.cfg.DATASET.dataset_path_pickle = opt.cfg.DATASET.dataset_path_pickle_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_pickle_local
 
     opt.cfg.DATASET.png_path = opt.cfg.DATASET.png_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_local
     opt.cfg.DATASET.dataset_path_mini = opt.cfg.DATASET.dataset_path_mini_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_mini_local
