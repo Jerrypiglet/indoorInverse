@@ -183,7 +183,6 @@ _C.MODEL_BRDF.albedo.if_HDR = False # compute albedo in SDR instead of pseudo-HD
 _C.MODEL_BRDF.loss = CN()
 _C.MODEL_BRDF.loss.if_use_reg_loss_depth = False
 _C.MODEL_BRDF.loss.reg_loss_depth_weight = 0.5
-_C.MODEL_BRDF.loss.if_use_reg_loss_albedo = False
 _C.MODEL_BRDF.loss.reg_loss_albedo_weight = 0.5
 
 _C.MODEL_BRDF.use_scale_aware_depth = False

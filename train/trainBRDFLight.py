@@ -71,6 +71,7 @@ parser.add_argument('--batch_size_override_vis', type=int, default=-1, help='')
 parser.add_argument('--if_cluster', action='store_true', help='if using cluster')
 parser.add_argument('--cluster', type=str, default='kubectl', help='cluster name if if_cluster is True', choices={"kubectl", "nvidia", "ngc"})
 parser.add_argument('--eval_every_iter', type=int, default=2000, help='')
+parser.add_argument('--vis_every_iter', type=int, default=1000, help='')
 parser.add_argument('--save_every_iter', type=int, default=5000, help='')
 parser.add_argument('--debug_every_iter', type=int, default=2000, help='')
 parser.add_argument('--max_iter', type=int, default=-1, help='')
@@ -352,21 +353,23 @@ else:
 
             # synchronize()
             print((tid - tid_start) % opt.eval_every_iter, opt.eval_every_iter)
-            if opt.eval_every_iter != -1 and (tid - tid_start) % opt.eval_every_iter == 0:
+            if opt.vis_every_iter != -1 and (tid - tid_start) % opt.vis_every_iter == 0:
                 val_params = {'writer': writer, 'logger': logger, 'opt': opt, 'tid': tid}
                 if opt.if_vis:
                     val_params.update({'batch_size_val_vis': batch_size_val_vis})
                     with torch.no_grad():
                         vis_val_epoch_joint(brdf_loader_val_vis, model, val_params)
-                    synchronize()                
+                model.train()
+                reset_tictoc = True
+
+            if opt.eval_every_iter != -1 and (tid - tid_start) % opt.eval_every_iter == 0:
+                val_params = {'writer': writer, 'logger': logger, 'opt': opt, 'tid': tid}
                 if opt.if_val:
                     val_params.update({'brdf_dataset_val': brdf_dataset_val})
                     with torch.no_grad():
                         val_epoch_joint(brdf_loader_val, model, val_params)
                 model.train()
                 reset_tictoc = True
-                
-                synchronize()
 
             # Save checkpoint
             if opt.save_every_iter != -1 and (tid - tid_start) % opt.save_every_iter == 0 and 'tmp' not in opt.task_name:
@@ -407,8 +410,6 @@ else:
                     loss_keys_print.append('loss_brdf-ALL')
                 if 'al' in opt.cfg.MODEL_BRDF.enable_list and 'al' in opt.cfg.MODEL_BRDF.loss_list:
                     loss_keys_print.append('loss_brdf-albedo') 
-                    if opt.cfg.MODEL_BRDF.loss.if_use_reg_loss_albedo:
-                        loss_keys_print.append('loss_brdf-albedo-reg') 
                 if 'no' in opt.cfg.MODEL_BRDF.enable_list and 'no' in opt.cfg.MODEL_BRDF.loss_list:
                     loss_keys_print.append('loss_brdf-normal') 
                 if 'ro' in opt.cfg.MODEL_BRDF.enable_list and 'ro' in opt.cfg.MODEL_BRDF.loss_list:

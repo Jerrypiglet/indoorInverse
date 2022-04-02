@@ -116,8 +116,6 @@ def val_epoch_joint(brdf_loader_val, model, params_mis):
             loss_keys += ['loss_brdf-ALL', ]
             if 'al' in opt.cfg.DATA.data_read_list:
                 loss_keys += ['loss_brdf-albedo', ]
-                if opt.cfg.MODEL_BRDF.loss.if_use_reg_loss_albedo:
-                    loss_keys += ['loss_brdf-albedo-reg']
             if 'no' in opt.cfg.DATA.data_read_list:
                 loss_keys += ['loss_brdf-normal', ]
             if 'ro' in opt.cfg.DATA.data_read_list:
@@ -188,7 +186,11 @@ def val_epoch_joint(brdf_loader_val, model, params_mis):
 
                 if 'de' in opt.cfg.MODEL_BRDF.enable_list:
                     depth_input = input_dict['depthBatch'].detach().cpu().numpy()
-                    depth_output = output_dict['depthPred'].detach().cpu().numpy()
+                    if opt.cfg.MODEL_BRDF.use_scale_aware_depth:
+                        depth_output = output_dict['depthPred'].detach().cpu().numpy()
+                    else:
+                        depth_output = output_dict['depthPred_aligned'].detach().cpu().numpy()
+
                     seg_obj = data_batch['segObj'].cpu().numpy()
                     min_depth, max_depth = 0.1, 8.
                     depth_output = depth_output * seg_obj
@@ -216,12 +218,25 @@ def val_epoch_joint(brdf_loader_val, model, params_mis):
                     brdf_meters['normal_median_error_meter'].update(np.median(normal_error))
 
     # ======= Metering
+
+    if opt.distributed:
+        from utils.utils_rui import gather_lists
+        if ENABLE_BRDF:
+            if 'de' in opt.cfg.MODEL_BRDF.enable_list:
+                for metric in opt.depth_metrics:
+                    metric_list_gathered = gather_lists(brdf_meters[metric].get_all(), opt.num_gpus)
+                    if opt.is_master:
+                        brdf_meters[metric].set_all(metric_list_gathered)
+            if 'no' in opt.cfg.MODEL_BRDF.enable_list:
+                for metric in ['normal_mean_error_meter', 'normal_median_error_meter']:
+                    metric_list_gathered = gather_lists(brdf_meters[metric].get_all(), opt.num_gpus)
+                    if opt.is_master:
+                        brdf_meters[metric].set_all(metric_list_gathered)
         
     if opt.is_master:
         for loss_key in loss_dict_reduced:
             writer.add_scalar('loss_val/%s'%loss_key, loss_meters[loss_key].avg, tid)
-            logger.info('Logged val loss for %s:%.6f'%(loss_key, loss_meters[loss_key].avg))
-
+            logger.info('Logged val loss for %s: %.6f'%(loss_key, loss_meters[loss_key].avg))
 
         if ENABLE_BRDF:
             if 'de' in opt.cfg.MODEL_BRDF.enable_list:
@@ -233,7 +248,6 @@ def val_epoch_joint(brdf_loader_val, model, params_mis):
                 writer.add_scalar('VAL/BRDF-normal_median_val', brdf_meters['normal_median_error_meter'].get_median(), tid)
                 logger.info('Val result - normal: mean: %.4f, median: %.4f'%(brdf_meters['normal_mean_error_meter'].avg, brdf_meters['normal_median_error_meter'].get_median()))
 
-    # synchronize()
     logger.info(red('Evaluation timings: ' + time_meters_to_string(time_meters)))
 
 
@@ -531,9 +545,10 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
         depth_gt_batch_vis_sdr_numpy = depth_gt_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
     depth_min_and_scale_list = []
     segAll_list = []
-    if not opt.cfg.DATASET.if_no_gt_BRDF and opt.is_master and not opt.if_plotted:
+    if not opt.cfg.DATASET.if_no_gt_BRDF and opt.is_master:
         for sample_idx in range(im_batch_vis_sdr.shape[0]):
-            writer.add_image('VAL_brdf-segBRDF_GT/%d'%sample_idx, segBRDFBatch_vis[sample_idx].cpu().detach().numpy().squeeze(), tid, dataformats='HW')
+            if not opt.if_plotted:
+                writer.add_image('VAL_brdf-segBRDF_GT/%d'%sample_idx, segBRDFBatch_vis[sample_idx].cpu().detach().numpy().squeeze(), tid, dataformats='HW')
             segAll = segAllBatch_vis[sample_idx].cpu().detach().numpy().squeeze()
             segAll = segAll.squeeze()
             segAll = ndimage.binary_erosion(segAll, structure=np.ones((7, 7) ),
@@ -542,15 +557,19 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
 
             writer.add_image('VAL_brdf-segAll_GT/%d'%sample_idx, segAll, tid, dataformats='HW')
             if 'al' in opt.cfg.DATA.data_read_list:
-                writer.add_image('VAL_brdf-albedo_GT/%d'%sample_idx, albedo_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
+                if not opt.if_plotted:
+                    writer.add_image('VAL_brdf-albedo_GT/%d'%sample_idx, albedo_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
             if 'no' in opt.cfg.DATA.data_read_list:
-                writer.add_image('VAL_brdf-normal_GT/%d'%sample_idx, normal_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
+                if not opt.if_plotted:
+                    writer.add_image('VAL_brdf-normal_GT/%d'%sample_idx, normal_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
             if 'ro' in opt.cfg.DATA.data_read_list:
-                writer.add_image('VAL_brdf-rough_GT/%d'%sample_idx, rough_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
+                if not opt.if_plotted:
+                    writer.add_image('VAL_brdf-rough_GT/%d'%sample_idx, rough_gt_batch_vis_sdr_numpy[sample_idx], tid, dataformats='HWC')
             if 'de' in opt.cfg.DATA.data_read_list:
                 depth_normalized, depth_min_and_scale = vis_disp_colormap(depth_gt_batch_vis_sdr_numpy[sample_idx].squeeze(), normalize=True, valid_mask=segAll==1)
                 depth_min_and_scale_list.append(depth_min_and_scale)
-                writer.add_image('VAL_brdf-depth_GT/%d'%sample_idx, depth_normalized, tid, dataformats='HWC')
+                if not opt.if_plotted:
+                    writer.add_image('VAL_brdf-depth_GT/%d'%sample_idx, depth_normalized, tid, dataformats='HWC')
 
 
     ## ---- ESTs
@@ -636,28 +655,16 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
             if opt.cfg.MODEL_BRDF.if_bilateral:
                 depthBsOut = 1 / torch.clamp(depthBsPreds_vis + 1, 1e-6, 10) * segAllBatch_vis.expand_as(depthBsPreds_vis)
                 depth_bs_pred_batch_vis_sdr = ( depthBsOut * segAllBatch_vis.expand_as(depthBsPreds_vis) ).data
-
-            depthOut_colored_single_numpy_list = []
-            for idxx, depthPreds_vis_single_numpy in enumerate(depthOut.cpu().detach().numpy()):
-                # print(idxx, len(segAll_list))
-                if opt.cfg.DATASET.if_no_gt_BRDF:
-                    depthOut_colored_single_numpy_list.append(vis_disp_colormap(depthPreds_vis_single_numpy.squeeze(), normalize=True)[0])
-                else:
-                    depthOut_colored_single_numpy_list.append(vis_disp_colormap(depthPreds_vis_single_numpy.squeeze(), normalize=True, valid_mask=segAll_list[idxx]==1)[0])
-            depthOut_colored_batch = np.stack(depthOut_colored_single_numpy_list).transpose(0, 3, 1, 2).astype(np.float32) / 255.
-            depth_pred_batch_vis_sdr_colored = ( torch.from_numpy(depthOut_colored_batch).cuda() * segAllBatch_vis.expand_as(depthPreds_vis) ).data
-
             if opt.is_master:
                 vutils.save_image(depth_pred_batch_vis_sdr,
                     '{0}/{1}_depthPred_{2}.png'.format(opt.summary_vis_path_task, tid, n) )
-                vutils.save_image(depth_pred_batch_vis_sdr_colored,
-                    '{0}/{1}_depthPred_colored_{2}.png'.format(opt.summary_vis_path_task, tid, n) )
 
 
         if 'al' in opt.cfg.MODEL_BRDF.enable_list:
             albedo_pred_batch_vis_sdr_numpy = albedo_pred_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
-            if (not opt.cfg.DATASET.if_no_gt_BRDF) and opt.cfg.DATA.load_brdf_gt and 'al' in opt.cfg.DATA.data_read_list:
-                albedo_pred_aligned_batch_vis_sdr_numpy = albedo_pred_aligned_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
+            if not opt.cfg.MODEL_BRDF.use_scale_aware_albedo:
+                if (not opt.cfg.DATASET.if_no_gt_BRDF) and opt.cfg.DATA.load_brdf_gt and 'al' in opt.cfg.DATA.data_read_list:
+                    albedo_pred_aligned_batch_vis_sdr_numpy = albedo_pred_aligned_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
             if opt.cfg.MODEL_BRDF.if_bilateral:
                 albedo_bs_pred_batch_vis_sdr_numpy = albedo_bs_pred_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
         if 'no' in opt.cfg.MODEL_BRDF.enable_list:
@@ -740,7 +747,6 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                     if (not opt.cfg.DATASET.if_no_gt_BRDF) and opt.cfg.DATA.load_brdf_gt and 'de' in opt.cfg.DATA.data_read_list:
                         depth_normalized_pred, _ = vis_disp_colormap(depth_pred_batch_vis_sdr_numpy[sample_idx].squeeze(), normalize=True, min_and_scale=depth_min_and_scale_list[sample_idx], )
                         writer.add_image('VAL_brdf-depth_syncScale_PRED/%d'%sample_idx, depth_normalized_pred[:im_h_resized_to, :im_w_resized_to], tid, dataformats='HWC')
-                        # print(segAllBatch_vis.shape, segAllBatch_vis.dtype, torch.max(segAllBatch_vis))
                     _ = depth_pred_batch_vis_sdr_numpy[sample_idx].squeeze()
                     im_h_resized_to, im_w_resized_to = im_h_resized_to_list[sample_idx], im_w_resized_to_list[sample_idx]
                     _ = _[:im_h_resized_to, :im_w_resized_to]

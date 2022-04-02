@@ -1,0 +1,3 @@
+[submodule "InverseRenderingOfIndoorScene"]
+	path = InverseRenderingOfIndoorScene
+	url = https://github.com/Jerrypiglet/InverseRenderingOfIndoorScene.git

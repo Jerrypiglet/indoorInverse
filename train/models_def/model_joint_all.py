@@ -199,7 +199,6 @@ class Model_Joint(nn.Module):
             if 'de' in self.cfg.MODEL_BRDF.enable_list:
                 depth_output = self.BRDF_Net['depthDecoder'](input_dict['imBatch'], x1, x2, x3, x4, x5, x6, input_dict_extra=input_dict_extra)
                 depthPred = depth_output['x_out']
-                # if not self.cfg.MODEL_BRDF.use_scale_aware_depth:
                 return_dict.update({'depthPred': depthPred})
 
                 if if_has_gt_BRDF:

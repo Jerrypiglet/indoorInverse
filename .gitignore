@@ -67,3 +67,4 @@ cluster_control/rui_deployment.yaml
 cluster_control/rui_pvc.yaml
 cluster_control/rui_tb_pod_ravi.yaml
 cluster_control/rui_torch_job_2gpu_v6_mclab.yaml
+clean_up*
