@@ -40,7 +40,6 @@ spec:
           - name: ruidatamclab
             mountPath: /ruidata
 
-
       volumes:
       - name: dshm  # shared memory
         emptyDir:
@@ -68,10 +67,10 @@ spec:
               #   operator: NotIn
               #   values:
               #   - k8s-haosu-01.sdsc.optiputer.net
-              - key: gpu-type
-                operator: In
-                values:
-                # - 1080Ti
-                - 2080Ti
-                # - TITANRTX
+              # - key: gpu-type
+              #   operator: In
+              #   values:
+              #   # - 1080Ti
+              #   - 2080Ti
+              #   # - TITANRTX
   backoffLimit: 2
