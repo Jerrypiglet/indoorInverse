@@ -492,7 +492,10 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
     ## ---- GTs
     # if (not opt.cfg.DATASET.if_no_gt_semantics):
     if 'al' in opt.cfg.DATA.data_read_list:
-        albedo_gt_batch_vis_sdr = ( (albedoBatch_vis ) ** (1.0/2.2) ).data
+        if opt.cfg.MODEL_BRDF.albedo.if_HDR:
+            albedo_gt_batch_vis_sdr = ( (albedoBatch_vis ) ** (1.0/2.2) ).data
+        else:
+            albedo_gt_batch_vis_sdr = ( (albedoBatch_vis )).data
     if 'no' in opt.cfg.DATA.data_read_list:
         normal_gt_batch_vis_sdr = (0.5*(normalBatch_vis + 1) ).data
     if 'ro' in opt.cfg.DATA.data_read_list:
@@ -593,12 +596,18 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
 
         # ==== Preds
         if 'al' in opt.cfg.MODEL_BRDF.enable_list:
-            albedo_pred_batch_vis_sdr = ( (albedoPreds_vis ) ** (1.0/2.2) ).data
             if opt.cfg.MODEL_BRDF.if_bilateral:
                 albedo_bs_pred_batch_vis_sdr = ( (albedoBsPreds_vis ) ** (1.0/2.2) ).data
 
-            if (not opt.cfg.DATASET.if_no_gt_BRDF) and opt.cfg.DATA.load_brdf_gt and 'al' in opt.cfg.DATA.data_read_list:
-                albedo_pred_aligned_batch_vis_sdr = ( (albedoPreds_aligned_vis ) ** (1.0/2.2) ).data
+            if opt.cfg.MODEL_BRDF.albedo.if_HDR:
+                albedo_pred_batch_vis_sdr = ( (albedoPreds_vis ) ** (1.0/2.2) ).data
+                if not opt.cfg.MODEL_BRDF.use_scale_aware_albedo:
+                    albedo_pred_aligned_batch_vis_sdr = ( (albedoPreds_aligned_vis ) ** (1.0/2.2) ).data
+            else:
+                albedo_pred_batch_vis_sdr = ( (albedoPreds_vis )).data
+                if not opt.cfg.MODEL_BRDF.use_scale_aware_albedo:
+                    albedo_pred_aligned_batch_vis_sdr = ( (albedoPreds_aligned_vis )).data
+
             if opt.is_master:
                 vutils.save_image(albedo_pred_batch_vis_sdr,
                         '{0}/{1}_albedoPred.png'.format(opt.summary_vis_path_task, tid) )
