@@ -314,7 +314,7 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
 
                 im_single = im_single.numpy().squeeze()
                 im_single_list.append(im_single)
-                if opt.is_master:
+                if opt.is_master and not opt.if_plotted:
                     writer.add_image('VAL_im/%d'%(sample_idx), im_single, tid, dataformats='HWC')
                     writer.add_image('VAL_im_cropped/%d'%(sample_idx), im_single[:im_h_resized_to_batch[sample_idx_batch], :im_w_resized_to_batch[sample_idx_batch]], tid, dataformats='HWC')
                     writer.add_image('VAL_pad_mask/%d'%(sample_idx), data_batch['pad_mask'][sample_idx_batch]*255, tid, dataformats='HW')
@@ -531,7 +531,7 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
         depth_gt_batch_vis_sdr_numpy = depth_gt_batch_vis_sdr.cpu().numpy().transpose(0, 2, 3, 1)
     depth_min_and_scale_list = []
     segAll_list = []
-    if not opt.cfg.DATASET.if_no_gt_BRDF and opt.is_master:
+    if not opt.cfg.DATASET.if_no_gt_BRDF and opt.is_master and not opt.if_plotted:
         for sample_idx in range(im_batch_vis_sdr.shape[0]):
             writer.add_image('VAL_brdf-segBRDF_GT/%d'%sample_idx, segBRDFBatch_vis[sample_idx].cpu().detach().numpy().squeeze(), tid, dataformats='HW')
             segAll = segAllBatch_vis[sample_idx].cpu().detach().numpy().squeeze()
@@ -784,6 +784,8 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
 
 
     logger.info(red('Evaluation VIS timings: ' + time_meters_to_string(time_meters)))
+
+    opt.if_plotted = True
 
 
 def writeEnvToFile(envmaps, envId, envName, nrows=12, ncols=8, envHeight=8, envWidth=16, gap=1):

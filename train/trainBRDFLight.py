@@ -136,6 +136,7 @@ cfg.merge_from_file(opt.config_file)
 cfg = utils_config.merge_cfg_from_list(cfg, opt.params)
 opt.cfg = cfg
 opt.pwdpath = pwdpath
+opt.if_plotted = False
 
 from utils.utils_envs import set_up_dist
 handle = set_up_dist(opt)

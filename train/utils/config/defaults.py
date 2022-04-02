@@ -77,7 +77,6 @@ _C.DATASET.dataset_path_pickle = ''
 _C.DATASET.dataset_path_pickle_local = '/home/ruizhu/Documents/Projects/DPTSSN/dataset/ORfull-perFramePickles-240x320-fullBRDF-semseg'
 _C.DATASET.dataset_path_pickle_cluster = ['/ruidata/ORfull-perFramePickles-240x320-fullBRDF-semseg']
 
-
 _C.DATASET.real_images_root_path = '/home/ruizhu/Documents/Projects/indoorInverse'
 _C.DATASET.real_images_list_path = 'data/list_real_20.txt'
 
