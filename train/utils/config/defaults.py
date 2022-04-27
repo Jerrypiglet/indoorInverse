@@ -69,7 +69,7 @@ _C.DATASET.dataset_name = 'openrooms'
 _C.DATASET.dataset_path = ''
 _C.DATASET.dataset_path_local = '/home/ruizhu/Documents/Projects/semanticInverse/dataset/openrooms'
 _C.DATASET.dataset_path_local_quarter = ''
-_C.DATASET.dataset_path_cluster = ['/openroomsindept']
+_C.DATASET.dataset_path_cluster = ['/siggraphasia20dataset/code/Routine/DatasetCreation/']
 # _C.DATASET.dataset_path_binary = ''
 _C.DATASET.dataset_path_local_fast_BRDF = '/ruidata/openrooms_raw_BRDF'
 
@@ -106,7 +106,7 @@ _C.DATASET.envmap_path_cluster = ['/siggraphasia20dataset/EnvDataset/']
 _C.DATASET.dataset_list = ''
 _C.DATASET.dataset_path_mini = ''
 _C.DATASET.dataset_path_mini_local = '/data/ruizhu/openrooms_mini'
-_C.DATASET.dataset_path_mini_cluster = ['']
+_C.DATASET.dataset_path_mini_cluster = ['/openroomsindept/openrooms_mini_RAW']
 _C.DATASET.dataset_list_mini = 'data/openrooms/list_ORmini/list'
 _C.DATASET.dataset_if_save_space = True # e.g. only same one depth for main_xml, diffMat, diffLight
 _C.DATASET.dataset_list_sequence = False # convert #idx of the val list into sequential inputs
@@ -124,7 +124,7 @@ _C.DATASET.if_no_gt_light = False
 # ===== data loading configs
 
 _C.DATA = CN()
-_C.DATA.if_load_png_not_hdr = True # load png as input image instead of hdr image
+_C.DATA.if_load_png_not_hdr = False # load png as input image instead of hdr image
 _C.DATA.if_augment_train = False
 _C.DATA.im_height = 240
 _C.DATA.im_width = 320

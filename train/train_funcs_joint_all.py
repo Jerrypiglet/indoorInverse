@@ -600,18 +600,18 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                 if opt.cfg.MODEL_BRDF.if_bilateral:
                     depthBsPreds_vis = torch.cat(depthBsPreds_aligned_list)
 
-        if opt.cascadeLevel > 0:
-            diffusePreBatch_vis = torch.cat(diffusePreBatch_list)
-            specularPreBatch_vis = torch.cat(specularPreBatch_list)
-            renderedImBatch_vis = torch.cat(renderedImBatch_list)
+        # if opt.cascadeLevel > 0:
+        #     diffusePreBatch_vis = torch.cat(diffusePreBatch_list)
+        #     specularPreBatch_vis = torch.cat(specularPreBatch_list)
+        #     renderedImBatch_vis = torch.cat(renderedImBatch_list)
 
-        if opt.cascadeLevel > 0 and opt.is_master:
-            vutils.save_image( ( (diffusePreBatch_vis)**(1.0/2.2) ).data,
-                    '{0}/{1}_diffusePre.png'.format(opt.summary_vis_path_task, tid) )
-            vutils.save_image( ( (specularPreBatch_vis)**(1.0/2.2) ).data,
-                    '{0}/{1}_specularPre.png'.format(opt.summary_vis_path_task, tid) )
-            vutils.save_image( ( (renderedImBatch_vis)**(1.0/2.2) ).data,
-                    '{0}/{1}_renderedImage.png'.format(opt.summary_vis_path_task, tid) )
+        # if opt.cascadeLevel > 0 and opt.is_master:
+        #     vutils.save_image( ( (diffusePreBatch_vis)**(1.0/2.2) ).data,
+        #             '{0}/{1}_diffusePre.png'.format(opt.summary_vis_path_task, tid) )
+        #     vutils.save_image( ( (specularPreBatch_vis)**(1.0/2.2) ).data,
+        #             '{0}/{1}_specularPre.png'.format(opt.summary_vis_path_task, tid) )
+        #     vutils.save_image( ( (renderedImBatch_vis)**(1.0/2.2) ).data,
+        #             '{0}/{1}_renderedImage.png'.format(opt.summary_vis_path_task, tid) )
 
         # ==== Preds
         if 'al' in opt.cfg.MODEL_BRDF.enable_list:
@@ -752,7 +752,7 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                     _ = _[:im_h_resized_to, :im_w_resized_to]
                     depth_not_normalized_pred, depth_not_normalized_pred_scaling = vis_disp_colormap(_, normalize=True)
                     writer.add_image('VAL_brdf-depth_PRED/%d'%sample_idx, depth_not_normalized_pred[:im_h_resized_to, :im_w_resized_to], tid, dataformats='HWC')
-                    writer.add_image('VAL_brdf-depth_PRED_thres%.2f/%d'%(opt.cfg.MODEL_LIGHT.depth_thres, sample_idx), depthPreds_vis[sample_idx].cpu().numpy().squeeze()>opt.cfg.MODEL_LIGHT.depth_thres, tid, dataformats='HW')
+                    # writer.add_image('VAL_brdf-depth_PRED_thres%.2f/%d'%(opt.cfg.MODEL_LIGHT.depth_thres, sample_idx), depthPreds_vis[sample_idx].cpu().numpy().squeeze()>opt.cfg.MODEL_LIGHT.depth_thres, tid, dataformats='HW')
                     if opt.cfg.MODEL_BRDF.if_bilateral:
                         if (not opt.cfg.DATASET.if_no_gt_BRDF) and opt.cfg.DATA.load_brdf_gt and 'de' in opt.cfg.DATA.data_read_list:
                             depth_bs_normalized_pred = vis_disp_colormap(depth_bs_pred_batch_vis_sdr_numpy[sample_idx].squeeze(), normalize=True, min_and_scale=depth_min_and_scale_list[sample_idx])[0]

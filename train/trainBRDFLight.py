@@ -22,8 +22,8 @@ print(sys.path)
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
-# from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
-from dataset_openrooms_OR_BRDFLight_pickles import openrooms_pickle, collate_fn_OR
+from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
+# from dataset_openrooms_OR_BRDFLight_pickles import openrooms_pickle, collate_fn_OR
 
 
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -188,7 +188,8 @@ from utils.utils_transforms import get_transform_BRDF
 transforms_train_BRDF = get_transform_BRDF('train', opt)
 transforms_val_BRDF = get_transform_BRDF('val', opt)
 
-openrooms_to_use = openrooms_pickle
+# openrooms_to_use = openrooms_pickle
+openrooms_to_use = openrooms
 make_data_loader_to_use = make_data_loader
     
 
