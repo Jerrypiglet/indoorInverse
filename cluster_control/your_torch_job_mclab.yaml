@@ -37,6 +37,8 @@ spec:
             mountPath: /{}data
           - name: openroomsindepthaosu
             mountPath: /openroomsindept
+          - name: siggraphasia20dataset
+            mountPath: /siggraphasia20dataset
           - name: ruidatamclab
             mountPath: /ruidata
 
@@ -47,6 +49,9 @@ spec:
       - name: openroomsindepthaosu
         persistentVolumeClaim:
             claimName: openroomsindepthaosu 
+      - name: siggraphasia20dataset
+        persistentVolumeClaim:
+            claimName: siggraphasia20dataset
       - name: ruidatamclab
         persistentVolumeClaim:
             claimName: ruidatamclab
