@@ -58,14 +58,14 @@ class openrooms(data.Dataset):
         if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
             self.data_root = '/ruidata/openrooms_raw_BRDF_test'
             
-        self.hdr_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imhdr'
-        self.png_root = Path(self.opt.cfg.DATASET.png_path) if not self.opt.if_cluster else Path(self.data_root)/'impng'
-        self.mask_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'immask'
-        self.cadmatobj_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imcadmatobj'
-        self.baseColor_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imbaseColor'
-        self.normal_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imnormal'
-        self.roughness_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imroughness'
-        self.depth_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)/'imdepth'
+        self.hdr_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imhdr'
+        self.png_root = Path(self.opt.cfg.DATASET.png_path) if not self.opt.if_cluster else Path(self.data_root)#/'impng'
+        self.mask_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'immask'
+        self.cadmatobj_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imcadmatobj'
+        self.baseColor_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imbaseColor'
+        self.normal_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imnormal'
+        self.roughness_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imroughness'
+        self.depth_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imdepth'
 
         split_to_list = {'train': 'train.txt', 'val': 'val.txt', 'test': 'test.txt'}
         data_list = os.path.join(self.cfg.PATH.root, self.cfg.DATASET.dataset_list)
@@ -314,7 +314,7 @@ class openrooms(data.Dataset):
                 else:
                     root_path_scene = '/newdata/ruizhu/openrooms_raw_light'
                 env_path = env_path.replace(self.opt.cfg.DATASET.dataset_path_local, root_path_scene)
-            print(env_path)
+                print('env_path:', env_path)
 
             envmaps, envmapsInd = self.loadEnvmap(env_path )
             envmaps = envmaps * hdr_scale 
@@ -500,7 +500,8 @@ class openrooms(data.Dataset):
             env = np.zeros( [3, self.envRow, self.envCol,
                 self.envHeight, self.envWidth], dtype = np.float32 )
             envInd = np.zeros([1, 1, 1], dtype=np.float32 )
-            print('Warning: the envmap %s does not exist.' % envName )
+            # print('Warning: the envmap %s does not exist.' % envName )
+            raise RuntimeError('Error: the envmap %s does not exist.' % envName )
             return env, envInd
         else:
             envHeightOrig, envWidthOrig = 16, 32
@@ -524,7 +525,8 @@ class openrooms(data.Dataset):
                 env = np.zeros( [3, self.envRow, self.envCol,
                     self.envHeight, self.envWidth], dtype = np.float32 )
                 envInd = np.zeros([1, 1, 1], dtype=np.float32 )
-                print('Warning: the envmap %s does not exist.' % envName )
+                # print('Warning: the envmap %s does not exist.' % envName )
+                raise RuntimeError('Error: the envmap %s does not exist.' % envName )
                 return env, envInd
 
     def loadNPY(self, imName, dtype=np.int32, if_resize=True):

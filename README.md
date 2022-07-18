@@ -133,7 +133,7 @@ Not ready:
 
 - cascade > 1
 - test on real images (real images, IIW, nyud)
-- lighting data on the cluster and data loading of it
+<!-- - lighting data on the cluster and data loading of it -->
   
 Training script used by Rui:
 ```bash

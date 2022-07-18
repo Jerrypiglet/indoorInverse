@@ -461,7 +461,8 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                                 with open('{0}/{1}-{2}_{3}_ori.pickle'.format(opt.summary_vis_path_task, tid, sample_idx, name_tag),"wb") as f:
                                     pickle.dump({'env': I_hdr[[2, 1, 0], :, :, :, :]}, f)
 
-                    for I_png, name_tag in zip([renderedImPred[sample_idx_batch], renderedImPred_sdr[sample_idx_batch], imBatchSmall[sample_idx_batch], imBatchSmall[sample_idx_batch]**(1./2.2)], ['renderedImPred', 'renderedImPred_sdr', 'imBatchSmall_GT', 'imBatchSmall_GT_sdr']):
+                    # for I_png, name_tag in zip([renderedImPred[sample_idx_batch], renderedImPred_sdr[sample_idx_batch], imBatchSmall[sample_idx_batch], imBatchSmall[sample_idx_batch]**(1./2.2)], ['renderedImPred', 'renderedImPred_sdr', 'imBatchSmall_GT', 'imBatchSmall_GT_sdr']):
+                    for I_png, name_tag in zip([renderedImPred_sdr[sample_idx_batch], imBatchSmall[sample_idx_batch], imBatchSmall[sample_idx_batch]**(1./2.2)], ['renderedImPred_sdr', 'imBatchSmall_GT', 'imBatchSmall_GT_sdr']):
                         I_png = np.clip(I_png, 0., 1.)
                         I_png = (I_png.transpose(1, 2, 0) * 255.).astype(np.uint8)
                         if opt.is_master:
