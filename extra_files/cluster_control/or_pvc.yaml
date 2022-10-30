@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: openroomsindepthaosu
+spec:
+  storageClassName: rook-cephfs-haosu
+  accessModes:
+  - ReadWriteMany
+  resources:
+    requests:
+      storage: 1536Gi

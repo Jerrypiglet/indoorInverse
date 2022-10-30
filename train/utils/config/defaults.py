@@ -36,13 +36,13 @@ _C.PATH.OR_lists_path_zhengqinCVPR = 'data/openrooms/list_OR_V4full_zhengqinCVPR
 _C.PATH.matcls_matIdG1_path = 'data/openrooms/matIdGlobal1.txt'
 _C.PATH.matcls_matIdG2_path = 'data/openrooms/matIdGlobal2.txt'
 _C.PATH.torch_home_path = ''
-_C.PATH.torch_home_local = '/home/ruizhu/Documents/Projects/indoorInverse/'
+_C.PATH.torch_home_local = '.'
 _C.PATH.torch_home_cluster = ['/ruidata/indoorInverse/']
 _C.PATH.pretrained_path = ''
 _C.PATH.pretrained_local = '/home/ruizhu/Documents/Projects/semanticInverse/pretrained'
 _C.PATH.pretrained_cluster = ['/ruidata/indoorInverse/pretrained']
 _C.PATH.models_ckpt_path = ''
-_C.PATH.models_ckpt_local = '/home/ruizhu/Documents/Projects/semanticInverse/models_ckpt'
+_C.PATH.models_ckpt_local = 'models_ckpt'
 _C.PATH.models_ckpt_cluster = ['/ruidata/indoorInverse/models_ckpt', '', '']
 
 # ===== debug

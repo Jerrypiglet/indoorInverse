@@ -11,20 +11,19 @@ import time
 import os, sys, inspect
 from icecream import ic
 
-pwdpath = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
+# pwd_path = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 from pathlib import Path
-os.system('touch %s/models_def/__init__.py'%pwdpath)
-os.system('touch %s/utils/__init__.py'%pwdpath)
-os.system('touch %s/__init__.py'%pwdpath)
-print('started.' + pwdpath)
-print(sys.path)
+# os.system('touch %s/models_def/__init__.py'%pwd_path)
+# os.system('touch %s/utils/__init__.py'%pwd_path)
+# os.system('touch %s/__init__.py'%pwd_path)
+# print('started.' + pwd_path)
+# print(sys.path)
 
 import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
 # from dataset_openrooms_OR_BRDFLight_pickles import openrooms_pickle, collate_fn_OR
-
 
 from torch.nn.parallel import DistributedDataParallel as DDP
 from utils.config import cfg
@@ -35,7 +34,7 @@ from utils.utils_training import reduce_loss_dict, check_save, print_gpu_usage, 
 from torch.optim.lr_scheduler import MultiStepLR, ReduceLROnPlateau, StepLR
 
 import utils.utils_config as utils_config
-from utils.utils_envs import set_up_envs
+from utils.utils_envs import set_up_root, set_up_envs
 
 parser = argparse.ArgumentParser()
 # The locationi of training set
@@ -117,8 +116,8 @@ parser.add_argument('--decay-rate', '--dr', type=float, default=0.1, metavar='RA
 
 
 parser.add_argument(
-    "--config-file",
-    default=os.path.join(pwdpath, "configs/config.yaml"),
+    "--config",
+    default='',
     metavar="FILE",
     help="path to config file",
     type=str,
@@ -133,10 +132,16 @@ parser.add_argument(
 # >>>>>>>>>>>>> A bunch of modularised set-ups
 opt = parser.parse_args()
 os.environ['MASETER_PORT'] = str(find_free_port())
-cfg.merge_from_file(opt.config_file)
+
+set_up_root(opt, cfg)
+if opt.config != '':
+    opt.config = str(Path(cfg.PATH.root) / 'configs' / opt.config)
+    cfg.merge_from_file(opt.config)
 cfg = utils_config.merge_cfg_from_list(cfg, opt.params)
 opt.cfg = cfg
-opt.pwdpath = pwdpath
+opt.pwd_path = cfg.PATH.root
+set_up_envs(opt)
+
 opt.if_plotted = False
 
 from utils.utils_envs import set_up_dist
@@ -146,11 +151,10 @@ set_up_folders(opt)
 from utils.utils_envs import set_up_logger
 logger, writer = set_up_logger(opt)
 opt.logger = logger
-set_up_envs(opt)
 opt.cfg.freeze()
 
-if opt.is_master:
-    ic(opt.cfg)
+# if opt.is_master:
+#     ic(opt.cfg)
 # <<<<<<<<<<<<< A bunch of modularised set-ups
 
 # >>>>>>>>>>>>> MODEL AND OPTIMIZER

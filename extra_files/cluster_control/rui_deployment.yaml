@@ -1,0 +1,62 @@
+apiVersion: apps/v1
+kind: Deployment
+
+metadata:
+  name: rui-deployment2
+  namespace: mc-lab
+  labels:
+    user: ruizhu
+
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      k8s-app: nginx
+  template:
+    metadata:
+      labels:
+        k8s-app: nginx
+    spec:
+      # nodeSelector:
+      #   kubernetes.io/hostname: k8s-haosu-10.sdsc.optiputer.net
+      containers:
+      - name: container
+        image: docker.io/jerrypiglet/deeplearningconda38v620210723cuda102
+        args: ["sleep", "infinity"]
+        resources:  
+          requests:
+            cpu: "100m"
+            memory: "2Gi"
+            # nvidia.com/gpu: 1
+          limits:
+            cpu: "16"
+            memory: "16Gi"
+            # nvidia.com/gpu: 1
+        volumeMounts:
+        - name: dshm
+          mountPath: /dev/shm
+        - name: openroomsindepthaosu
+          mountPath: /openroomsindept
+        - name: ruidatamclab
+          mountPath: /ruidata
+
+      volumes:
+      - name: ruidatamclab
+        persistentVolumeClaim:
+            claimName: ruidatamclab
+      - name: openroomsindepthaosu
+        persistentVolumeClaim:
+            claimName: openroomsindepthaosu 
+      - name: dshm
+        emptyDir:
+          medium: Memory
+
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nautilus.io/group
+                operator: In
+                values:
+                - haosu

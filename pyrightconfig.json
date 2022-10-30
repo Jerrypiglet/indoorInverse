@@ -1,0 +1,16 @@
+{
+    "include": [
+      "train"
+    ],
+    
+    "exclude": [
+        "**/.git", 
+        "**/.DS_Store", 
+        "**/logs/**", 
+        "**/Checkpoint/**", 
+        "**/summary_vis/**", 
+        "**/third-party/InverseRenderingOfIndoorScene/**", 
+        "**/train/__pycache__/**", 
+        "**/public/**", 
+],
+}

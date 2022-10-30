@@ -1,0 +1,68 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    user: rui
+  name: zz-torch-job-gpu20220402-041753
+  namespace: mc-lab
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nautilus.io/group
+                operator: In
+                values:
+                - haosu
+      containers:
+      - args:
+        - which python && . /root/miniconda3/etc/profile.d/conda.sh && conda activate
+          /ruidata/envs/py38 && which python && export TORCH_HOME=/ruidata/ && rclone
+          --progress copy s3mm1:train/train-20220402-041753 /ruidata/indoorInverse/job_list/train-20220402-041753
+          && cd /ruidata/indoorInverse/job_list/train-20220402-041753 && /ruidata/envs/py38/bin/python
+          -m torch.distributed.launch --master_port 5320 --nproc_per_node=1 trainBRDFLight.py
+          --if_cluster --task_name 20220402-041753-train_POD_trainBRDF_scratch --if_train
+          True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train
+          False DATASET.num_workers 16 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth
+          False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro
+          MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height
+          240 DATA.im_width 320 SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.if_load_png_not_hdr
+          True DATASET.mini False MODEL_BRDF.load_pretrained_pth False
+        command:
+        - sh
+        - -c
+        image: docker.io/jerrypiglet/deeplearningconda38v620210723cuda102
+        imagePullPolicy: IfNotPresent
+        name: gpu-container-rui
+        resources:
+          limits:
+            cpu: '30'
+            memory: 50Gi
+            nvidia.com/gpu: '1'
+          requests:
+            cpu: '15'
+            memory: 20Gi
+            nvidia.com/gpu: '1'
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - mountPath: /ruidata
+          name: ruidatamclab
+        - mountPath: /openroomsindept
+          name: openroomsindepthaosu
+      restartPolicy: Never
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: dshm
+      - name: openroomsindepthaosu
+        persistentVolumeClaim:
+          claimName: openroomsindepthaosu
+      - name: ruidatamclab
+        persistentVolumeClaim:
+          claimName: ruidatamclab
+  ttlSecondsAfterFinished: 86400

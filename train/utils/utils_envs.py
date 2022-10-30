@@ -11,16 +11,14 @@ from utils.utils_misc import only1true
 import os
 from utils import transform
 
-
-def set_up_envs(opt):
-    assert opt.cluster in opt.cfg.PATH.cluster_names
-    CLUSTER_ID = opt.cfg.PATH.cluster_names.index(opt.cluster)
+def set_up_root(opt, cfg):
+    assert opt.cluster in cfg.PATH.cluster_names
+    opt.CLUSTER_ID = cfg.PATH.cluster_names.index(opt.cluster)
     opt.if_pad = False
 
-    # assert opt.cfg.SOLVER.method in ['adam', 'adamw', 'zhengqin']
+    cfg.PATH.root = cfg.PATH.root_cluster[opt.CLUSTER_ID] if opt.if_cluster else cfg.PATH.root_local
 
-
-    opt.cfg.PATH.root = opt.cfg.PATH.root_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.root_local
+def set_up_envs(opt):
     if opt.if_cluster:
         # opt.cfg.TRAINING.MAX_CKPT_KEEP = -1
         opt.if_save_pickles = False
@@ -38,16 +36,16 @@ def set_up_envs(opt):
 
     if opt.cfg.DATASET.if_quarter and not opt.if_cluster:
         opt.cfg.DATASET.dataset_path_local = opt.cfg.DATASET.dataset_path_local_quarter
-    opt.cfg.DATASET.dataset_path = opt.cfg.DATASET.dataset_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_local
-    opt.cfg.DATASET.dataset_path_pickle = opt.cfg.DATASET.dataset_path_pickle_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_pickle_local
+    opt.cfg.DATASET.dataset_path = opt.cfg.DATASET.dataset_path_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_local
+    opt.cfg.DATASET.dataset_path_pickle = opt.cfg.DATASET.dataset_path_pickle_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_pickle_local
 
-    opt.cfg.DATASET.png_path = opt.cfg.DATASET.png_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_local
-    opt.cfg.DATASET.dataset_path_mini = opt.cfg.DATASET.dataset_path_mini_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_mini_local
-    opt.cfg.DATASET.png_path_mini = opt.cfg.DATASET.png_path_mini_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_mini_local
-    opt.cfg.DATASET.envmap_path = opt.cfg.DATASET.envmap_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.envmap_path_local
+    opt.cfg.DATASET.png_path = opt.cfg.DATASET.png_path_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_local
+    opt.cfg.DATASET.dataset_path_mini = opt.cfg.DATASET.dataset_path_mini_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.dataset_path_mini_local
+    opt.cfg.DATASET.png_path_mini = opt.cfg.DATASET.png_path_mini_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.png_path_mini_local
+    opt.cfg.DATASET.envmap_path = opt.cfg.DATASET.envmap_path_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.envmap_path_local
 
-    opt.cfg.DATASET.iiw_path = opt.cfg.DATASET.iiw_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.iiw_path_local
-    opt.cfg.DATASET.nyud_path = opt.cfg.DATASET.nyud_path_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.nyud_path_local
+    opt.cfg.DATASET.iiw_path = opt.cfg.DATASET.iiw_path_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.iiw_path_local
+    opt.cfg.DATASET.nyud_path = opt.cfg.DATASET.nyud_path_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.DATASET.nyud_path_local
 
     if opt.data_root is not None:
         opt.cfg.DATASET.dataset_path = opt.data_root
@@ -141,11 +139,11 @@ def set_up_envs(opt):
 
 
     # export
-    opt.cfg.PATH.torch_home_path = opt.cfg.PATH.torch_home_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.torch_home_local
+    opt.cfg.PATH.torch_home_path = opt.cfg.PATH.torch_home_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.torch_home_local
     os.system('export TORCH_HOME=%s'%opt.cfg.PATH.torch_home_path)
 
-    opt.cfg.PATH.pretrained_path = opt.cfg.PATH.pretrained_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.pretrained_local
-    opt.cfg.PATH.models_ckpt_path = opt.cfg.PATH.models_ckpt_cluster[CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.models_ckpt_local
+    opt.cfg.PATH.pretrained_path = opt.cfg.PATH.pretrained_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.pretrained_local
+    opt.cfg.PATH.models_ckpt_path = opt.cfg.PATH.models_ckpt_cluster[opt.CLUSTER_ID] if opt.if_cluster else opt.cfg.PATH.models_ckpt_local
 
     # dump
     if opt.cfg.DEBUG.if_dump_shadow_renderer:
@@ -186,22 +184,22 @@ def set_up_logger(opt):
     logger.info(opt)
     logger.info(red("==[config]== cfg"))
     logger.info(opt.cfg)
-    logger.info(red("==[config]== Loaded configuration file {}".format(opt.config_file)))
+    # logger.info(red("==[config]== Loaded configuration file {}".format(opt.config)))
     # logger.info(red("==[opt.semseg_configs]=="))
     # logger.info(opt.semseg_configs)
 
-    with open(opt.config_file, "r") as cf:
-        config_str = "\n" + cf.read()
-        # logger.info(config_str)
+    # with open(opt.config, "r") as cf:
+    #     config_str = "\n" + cf.read()
+    #     # logger.info(config_str)
     printer = printer(opt.rank, debug=opt.debug)
 
     if opt.is_master and 'tmp' not in opt.task_name and not opt.cfg.DEBUG.if_test_real:
         exclude_list = ['apex', 'logs_bkg', 'archive', 'train_cifar10_py', 'train_mnist_tf', 'utils_external', 'build/'] + \
-            ['Summary', 'Summary_vis', 'Checkpoint', 'logs', '__pycache__', 'snapshots', '.vscode', '.ipynb_checkpoints', 'azureml-setup', 'azureml_compute_logs']
+            ['Summary', 'summary_vis', 'Checkpoint', 'logs', '__pycache__', 'snapshots', '.vscode', '.ipynb_checkpoints', 'azureml-setup', 'azureml_compute_logs']
         # if opt.if_cluster:
-        copy_py_files(opt.pwdpath, opt.summary_vis_path_task_py, exclude_paths=[str(opt.SUMMARY_PATH), str(opt.CKPT_PATH), str(opt.SUMMARY_VIS_PATH)]+exclude_list)
-        os.system('cp -r %s %s'%(opt.pwdpath, opt.summary_vis_path_task_py / 'train'))
-        logger.info(green('Copied source files %s -> %s'%(opt.pwdpath, opt.summary_vis_path_task_py)))
+        copy_py_files(opt.pwd_path, opt.summary_vis_path_task_py, exclude_paths=[str(opt.SUMMARY_PATH), str(opt.CKPT_PATH), str(opt.summary_vis_PATH)]+exclude_list)
+        os.system('cp -r %s %s'%(opt.pwd_path, opt.summary_vis_path_task_py / 'train'))
+        logger.info(green('Copied source files %s -> %s'%(opt.pwd_path, opt.summary_vis_path_task_py)))
         # folders = [f for f in Path('./').iterdir() if f.is_dir()]
         # for folder in folders:
         #     folder_dest = opt.summary_vis_path_task_py / folder.name
@@ -221,8 +219,8 @@ def set_up_logger(opt):
 
 
 def set_up_folders(opt):
-    from utils.global_paths import SUMMARY_PATH, SUMMARY_VIS_PATH, CKPT_PATH
-    opt.SUMMARY_PATH, opt.SUMMARY_VIS_PATH, opt.CKPT_PATH = SUMMARY_PATH, SUMMARY_VIS_PATH, CKPT_PATH
+    from utils.global_paths import SUMMARY_PATH, summary_vis_PATH, CKPT_PATH
+    opt.SUMMARY_PATH, opt.summary_vis_PATH, opt.CKPT_PATH = SUMMARY_PATH, summary_vis_PATH, CKPT_PATH
 
     # >>>> SUMMARY WRITERS
     if opt.if_cluster:
@@ -240,7 +238,7 @@ def set_up_folders(opt):
         # if opt.cluster == 'ngc':
         #     opt.SUMMARY_PATH = opt.home_path_tmp / SUMMARY_PATH
         #     opt.SUMMARY_PATH.mkdir(exist_ok=True)
-        opt.SUMMARY_VIS_PATH = opt.home_path / SUMMARY_VIS_PATH
+        opt.summary_vis_PATH = opt.home_path / summary_vis_PATH
 
     if not opt.if_cluster or 'DATE' in opt.task_name:
         if opt.resume != 'resume':
@@ -255,14 +253,14 @@ def set_up_folders(opt):
     # if opt.cluster == 'ngc':
     #     opt.summary_path_all_task = opt.SUMMARY_PATH_ALL / opt.task_name
     opt.checkpoints_path_task = opt.CKPT_PATH / opt.task_name
-    opt.summary_vis_path_task = opt.SUMMARY_VIS_PATH / opt.task_name
+    opt.summary_vis_path_task = opt.summary_vis_PATH / opt.task_name
     opt.summary_vis_path_task_py = opt.summary_vis_path_task / 'py_files'
 
     save_folders = [opt.summary_path_task, opt.summary_vis_path_task, opt.summary_vis_path_task_py, opt.checkpoints_path_task, ]
     print('====%d/%d'%(opt.rank, opt.num_gpus), opt.checkpoints_path_task)
 
     if opt.is_master:
-        for root_folder in [opt.SUMMARY_PATH, opt.CKPT_PATH, opt.SUMMARY_VIS_PATH]:
+        for root_folder in [opt.SUMMARY_PATH, opt.CKPT_PATH, opt.summary_vis_PATH]:
             if not root_folder.exists():
                 root_folder.mkdir(exist_ok=True)
         if_delete = 'n'

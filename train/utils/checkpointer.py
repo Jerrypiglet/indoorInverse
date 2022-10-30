@@ -155,7 +155,7 @@ class Checkpointer(object):
             elif len(task_name_splits) == 2:
                 save_file = os.path.join(self.checkpoint_all_dir, task_name)
             else:
-                ckpt_folder = os.path.join(self.opt.pwdpath, task_name)
+                ckpt_folder = os.path.join(self.opt.pwd_path, task_name)
         else:
             ckpt_folder = self.save_dir
 

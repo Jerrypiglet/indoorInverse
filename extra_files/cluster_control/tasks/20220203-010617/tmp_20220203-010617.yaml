@@ -1,0 +1,79 @@
+apiVersion: batch/v1
+kind: Job
+metadata:
+  labels:
+    user: rui
+  name: zz-torch-job-gpu20220203-010617
+  namespace: ucsd-ravigroup
+spec:
+  backoffLimit: 2
+  template:
+    spec:
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+            - matchExpressions:
+              - key: nautilus.io/group
+                operator: In
+                values:
+                - haosu
+              - key: gpu-type
+                operator: In
+                values:
+                - 2080Ti
+      containers:
+      - args:
+        - which python && . /root/miniconda3/etc/profile.d/conda.sh && conda activate
+          /ruidata/envs/py38 && which python && export TORCH_HOME=/ruidata/ && rclone
+          --progress copy s3mm1:train/train-20220203-010617 /ruidata/semanticInverse/job_list/train-20220203-010617
+          && cd /ruidata/semanticInverse/job_list/train-20220203-010617 && /ruidata/envs/py38/bin/python
+          -m torch.distributed.launch --master_port 5320 --nproc_per_node=2 trainBRDFLight.py
+          --if_cluster --task_name 20220203-010617-train_POD_UNet-al-ro-no-de_ZQ_bs16on2_32workers
+          --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train
+          False DATASET.num_workers 24 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth
+          False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_ro_no_de
+          MODEL_BRDF.loss_list al_ro_no_de DATA.data_read_list al_ro_no_de DATA.im_height
+          240 DATA.im_width 320 train_h 240 train_w 320 opt.cfg.DATASET.tmp False
+          DEBUG.if_dump_perframe_BRDF True SOLVER.ims_per_batch 8 TEST.ims_per_batch
+          8 DATA.load_brdf_gt True TEST.vis_max_samples 20 DATA.if_load_png_not_hdr
+          False
+        command:
+        - sh
+        - -c
+        image: docker.io/jerrypiglet/deeplearningconda38v620210723cuda102
+        imagePullPolicy: IfNotPresent
+        name: gpu-container-rui3
+        resources:
+          limits:
+            cpu: '45'
+            memory: 70Gi
+            nvidia.com/gpu: '2'
+          requests:
+            cpu: '25'
+            memory: 40Gi
+            nvidia.com/gpu: '2'
+        volumeMounts:
+        - mountPath: /dev/shm
+          name: dshm
+        - mountPath: /eccv20dataset
+          name: eccv20dataset
+        - mountPath: /siggraphasia20dataset
+          name: siggraphasia20dataset
+        - mountPath: /ruidata
+          name: ruidata
+      restartPolicy: Never
+      volumes:
+      - emptyDir:
+          medium: Memory
+        name: dshm
+      - name: eccv20dataset
+        persistentVolumeClaim:
+          claimName: eccv20dataset
+      - name: siggraphasia20dataset
+        persistentVolumeClaim:
+          claimName: siggraphasia20dataset
+      - name: ruidata
+        persistentVolumeClaim:
+          claimName: ruidata
+  ttlSecondsAfterFinished: 86400

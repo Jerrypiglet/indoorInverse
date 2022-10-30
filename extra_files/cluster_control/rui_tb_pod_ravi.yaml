@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: z-tb-pod-deeplearningconda38
+  # labels:
+  #   k8s-app: tensorboard
+  #   user: rui
+spec:
+  # replicas: 1
+  # selector:
+  #   matchLabels:
+  #     k8s-app: tensorboard
+  # template:
+  #   metadata:
+  #     labels:
+  #       k8s-app: tensorboard
+  #   spec:
+  containers:
+  - name: tensorboarde
+    command:
+      - "sh"
+      - "-c"
+    # args: ["tensorboard --logdir / --port 6008"]  # specify the directory to watch
+    args:
+    - "which python && . /root/miniconda3/etc/profile.d/conda.sh && cd /viscompfs/users/ruizhu/semanticInverse && conda activate /viscompfs/users/ruizhu/envs/semanticInverse && pip install tensorboard"
+    # - ". /root/anaconda3/etc/profile.d/conda.sh"
+    # image: docker.io/jerrypiglet/rui_conda_pod6
+    # image: docker.io/ak3636/deeplearning:latest
+    image: jerrypiglet/deeplearningconda38v620210509vtk
+    # ports:
+    # - containerPort: 6006
+    resources:
+      requests:
+        cpu: "1"
+        memory: "5Gi"
+        nvidia.com/gpu: 1
+      limits:
+        cpu: "2"
+        memory: "12Gi"
+        nvidia.com/gpu: 1
+    volumeMounts:
+    - name: viscompfs
+      mountPath: /viscompfs
+    - name: eccv20dataset
+      mountPath: /eccv20dataset
+    - name: siggraphasia20dataset
+      mountPath: /siggraphasia20dataset
+  volumes:
+  - name: viscompfs
+    flexVolume:
+      driver: ceph.rook.io/rook
+      fsType: ceph
+      options:
+        fsName: nautilusfs
+        clusterNamespace: rook
+        path: /viscompfs
+        mountUser: viscompfs
+        mountSecret: ceph-fs-secret
+  - name: eccv20dataset
+    persistentVolumeClaim:
+        claimName: eccv20dataset 
+  - name: siggraphasia20dataset
+    persistentVolumeClaim:
+        claimName: siggraphasia20dataset
+
+      
