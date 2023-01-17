@@ -30,8 +30,8 @@ _C.PATH.root_local = '/home/ruizhu/Documents/Projects/indoorInverse/train'
 _C.PATH.root_cluster = ['.', '.', '.']
 
 _C.PATH.OR_lists_path = 'data/openrooms/list_OR_V4full'
-_C.PATH.OR_lists_path_if_zhengqinCVPR = False
-_C.PATH.OR_lists_path_zhengqinCVPR = 'data/openrooms/list_OR_V4full_zhengqinCVPR'
+_C.PATH.OR_lists_path_if_CVPR20 = False # True: use CVPR20 splits instead of IRISFormer splits
+_C.PATH.OR_lists_path_CVPR20 = 'data/openrooms/list_OR_CVPR20'
 
 _C.PATH.matcls_matIdG1_path = 'data/openrooms/matIdGlobal1.txt'
 _C.PATH.matcls_matIdG2_path = 'data/openrooms/matIdGlobal2.txt'
@@ -67,7 +67,7 @@ _C.DATASET.tmp = False # load tmp OR list from DATASET.dataset_list_tmp
 _C.DATASET.first_scenes = -1 # laod first # of the entire dataset: train/val
 _C.DATASET.dataset_name = 'openrooms'
 _C.DATASET.dataset_path = ''
-_C.DATASET.dataset_path_local = '/home/ruizhu/Documents/Projects/semanticInverse/dataset/openrooms'
+_C.DATASET.dataset_path_local = '/newfoundland2/ruizhu/siggraphasia20dataset/code/Routine/DatasetCreation'
 _C.DATASET.dataset_path_local_quarter = ''
 _C.DATASET.dataset_path_cluster = ['/siggraphasia20dataset/code/Routine/DatasetCreation/']
 # _C.DATASET.dataset_path_binary = ''
@@ -113,7 +113,7 @@ _C.DATASET.dataset_list_sequence = False # convert #idx of the val list into seq
 _C.DATASET.dataset_list_sequence_idx = -1
 
 _C.DATASET.num_workers = 8
-_C.DATASET.if_val_dist = True
+_C.DATASET.if_eval_dist = True # if multi-gpu distributed evaluation
 # _C.DATASET.if_no_gt_semantics = False
 _C.DATASET.if_quarter = False
 
@@ -133,6 +133,7 @@ _C.DATA.im_width_ori = 320
 _C.DATA.load_brdf_gt = True
 _C.DATA.load_light_gt = False
 _C.DATA.load_semseg_gt = False
+_C.DATA.load_matseg_gt = False
 _C.DATA.load_masks = False
 _C.DATA.data_read_list = ''
 _C.DATA.data_read_list_allowed = ['al', 'no', 'de', 'ro', 'li']
@@ -160,15 +161,15 @@ _C.MODEL_BRDF.enable_list_allowed = ['al', 'no', 'de', 'ro']
 _C.MODEL_BRDF.load_pretrained_pth = False
 _C.MODEL_BRDF.loss_list = ''
 _C.MODEL_BRDF.channel_multi = 1
+_C.MODEL_BRDF.if_debug_arch = False
+_C.MODEL_BRDF.enable_BRDF_decoders = False
+
 _C.MODEL_BRDF.albedoWeight = 1.5
 _C.MODEL_BRDF.normalWeight = 1.0
 _C.MODEL_BRDF.roughWeight = 0.5
 _C.MODEL_BRDF.depthWeight = 0.5
-_C.MODEL_BRDF.if_debug_arch = False
-_C.MODEL_BRDF.enable_BRDF_decoders = False
 
 _C.MODEL_BRDF.pretrained_pth_name_BRDF_cascade0 = 'check_cascade0_w320_h240/%s0_13.pth' # should not use for Rui's splits; this ckpt was trained with Zhengqin's CVPR'20 splits
-
 _C.MODEL_BRDF.pretrained_pth_name_Bs_cascade0 = 'checkBs_cascade0_w320_h240/%s0_14_1000.pth' # should not use for Rui's splits; this ckpt was trained with Zhengqin's CVPR'20 splits
 _C.MODEL_BRDF.pretrained_if_load_encoder = True
 _C.MODEL_BRDF.pretrained_if_load_decoder = True
@@ -221,6 +222,22 @@ _C.MODEL_LIGHT.if_clamp_coeff = True
 _C.MODEL_LIGHT.depth_thres = 50.
 _C.MODEL_LIGHT.if_image_only_input = False
 _C.MODEL_LIGHT.if_est_log_weight = False
+
+# ===== material segmentation
+_C.MODEL_MATSEG = CN()
+_C.MODEL_MATSEG.enable = False
+_C.MODEL_MATSEG.arch = 'resnet101'
+_C.MODEL_MATSEG.pretrained = True
+_C.MODEL_MATSEG.if_freeze = False
+_C.MODEL_MATSEG.fix_bn = False
+_C.MODEL_MATSEG.embed_dims = 4
+_C.MODEL_MATSEG.if_guide = False
+_C.MODEL_MATSEG.guide_channels = 32
+_C.MODEL_MATSEG.use_as_input = False
+_C.MODEL_MATSEG.load_pretrained_pth = False
+_C.MODEL_MATSEG.pretrained_pth = ''
+_C.MODEL_MATSEG.use_pred_as_input = False
+_C.MODEL_MATSEG.if_save_embedding = False
 
 # ===== solver
 

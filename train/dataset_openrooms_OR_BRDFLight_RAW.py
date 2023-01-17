@@ -36,11 +36,15 @@ from utils import transform
 from utils_dataset_openrooms_OR_BRDFLight_RAW import make_dataset
 
 class openrooms(data.Dataset):
-    def __init__(self, opt, data_list=None, logger=basic_logger(), transforms_BRDF=None, 
-            split='train', task=None, if_for_training=True, load_first = -1, rseed = 1, 
-            cascadeLevel = 0,
-            envHeight = 8, envWidth = 16, envRow = 120, envCol = 160, 
-            SGNum = 12):
+    def __init__(
+        self, opt, 
+        data_list=None, logger=basic_logger(), 
+        transforms_BRDF=None, 
+        split='train', task=None, if_for_training=True, load_first = -1, rseed = 1, 
+        cascadeLevel = 0,
+        envHeight = 8, envWidth = 16, envRow = 120, envCol = 160, 
+        SGNum = 12
+        ):
 
         if logger is None:
             logger = basic_logger()
@@ -51,11 +55,11 @@ class openrooms(data.Dataset):
         self.rseed = rseed
         self.dataset_name = self.cfg.DATASET.dataset_name
         self.split = split
-        assert self.split in ['train', 'val', 'test']
+        assert self.split in ['train', 'val', 'test', 'valtest']
         self.task = self.split if task is None else task
         self.if_for_training = if_for_training
         self.data_root = self.opt.cfg.DATASET.dataset_path
-        if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
+        if self.opt.if_cluster==False and self.opt.cfg.PATH.OR_lists_path_if_CVPR20 and split!='train' and self.opt.cfg.DEBUG.if_fast_BRDF_labels:
             self.data_root = '/ruidata/openrooms_raw_BRDF_test'
             
         self.hdr_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imhdr'
@@ -67,14 +71,16 @@ class openrooms(data.Dataset):
         self.roughness_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imroughness'
         self.depth_root = Path(self.data_root) if not self.opt.if_cluster else Path(self.data_root)#/'imdepth'
 
-        split_to_list = {'train': 'train.txt', 'val': 'val.txt', 'test': 'test.txt'}
-        data_list = os.path.join(self.cfg.PATH.root, self.cfg.DATASET.dataset_list)
-        data_list = os.path.join(data_list, split_to_list[split])
-        self.data_list, self.meta_split_scene_name_frame_id_list, self.all_scenes_list = make_dataset(opt, split, self.task, str(self.hdr_root), data_list, logger=self.logger)
+        split_to_list = {'train': 'train.txt', 'val': 'val.txt', 'test': 'test.txt', 'valtest': 'valtest.txt'}
+        data_list_dir = os.path.join(self.cfg.PATH.root, self.cfg.DATASET.dataset_list)
+        data_list_path = os.path.join(data_list_dir, split_to_list[split])
+        self.data_list, self.meta_split_scene_name_frame_id_list, self.all_scenes_list = make_dataset(opt, split, self.task, str(self.hdr_root), data_list_path, logger=self.logger)
         assert len(self.data_list) == len(self.meta_split_scene_name_frame_id_list)
         if load_first != -1:
             self.data_list = self.data_list[:load_first] # [('/data/ruizhu/openrooms_mini-val/mainDiffLight_xml1/scene0509_00/im_1.hdr', '/data/ruizhu/openrooms_mini-val/main_xml1/scene0509_00/imsemLabel_1.npy'), ...
             self.meta_split_scene_name_frame_id_list = self.meta_split_scene_name_frame_id_list[:load_first] # [('mainDiffLight_xml1', 'scene0509_00', 1)
+        
+        self.test_scenes = [tuple(_.strip().split(' ')[2].split('/')[:2]) for _ in open(str(Path(opt.cfg.PATH.root) / Path(opt.cfg.PATH.OR_lists_path_CVPR20) / 'list/test.txt')).readlines()]
 
         logger.info(white_blue('%s-%s: total frames: %d; total scenes %d'%(self.dataset_name, self.split, len(self.data_list),len(self.all_scenes_list))))
 
@@ -110,8 +116,7 @@ class openrooms(data.Dataset):
             'png_image_path': png_image_path}
         batch_dict = {'image_index': index, 'frame_info': frame_info}
 
-        if_load_immask = True
-        if_load_immask = if_load_immask or self.opt.cfg.DATA.load_masks
+        if_load_immask = self.opt.cfg.DATA.load_masks
         self.opt.if_load_immask = if_load_immask
 
         if if_load_immask:
@@ -130,7 +135,7 @@ class openrooms(data.Dataset):
 
         seg_ori = np.copy(seg)
         brdf_loss_mask = np.ones((self.im_height, self.im_width), dtype=np.uint8)
-        pad_mask = np.ones((self.im_height, self.im_width), dtype=np.uint8)
+        # pad_mask = np.ones((self.im_height, self.im_width), dtype=np.uint8)
         # if self.if_extra_op:
         #     if mask.dtype not in [np.int32, np.float32]:
         #         mask = self.extra_op(mask, name='mask') # if resize, willl not work because mask is of dtype int32
@@ -138,7 +143,8 @@ class openrooms(data.Dataset):
         #     brdf_loss_mask = self.extra_op(brdf_loss_mask, if_channel_2_input=True, name='brdf_loss_mask', if_padding_constant=True)
         #     pad_mask = self.extra_op(pad_mask, if_channel_2_input=True, name='pad_mask', if_padding_constant=True)
 
-        batch_dict.update({'brdf_loss_mask': torch.from_numpy(brdf_loss_mask), 'pad_mask': torch.from_numpy(pad_mask)})
+        batch_dict.update({'brdf_loss_mask': torch.from_numpy(brdf_loss_mask)})
+        # , 'pad_mask': torch.from_numpy(pad_mask)})
         batch_dict.update({'im_w_resized_to': self.im_width, 'im_h_resized_to': self.im_height})
 
         if self.opt.cfg.DATA.if_load_png_not_hdr:
@@ -147,8 +153,10 @@ class openrooms(data.Dataset):
             image = Image.open(str(png_image_path))
             im_fixedscale_SDR_uint8 = np.array(image)
             im_fixedscale_SDR_uint8 = cv2.resize(im_fixedscale_SDR_uint8, (self.im_width, self.im_height), interpolation = cv2.INTER_AREA )
+            # print(type(im_fixedscale_SDR_uint8), im_fixedscale_SDR_uint8.shape)
 
             im_trainval_SDR = self.transforms_BRDF(im_fixedscale_SDR_uint8) # not necessarily \in [0., 1.] [!!!!]; already padded
+            # print('-->', type(im_trainval_SDR), im_trainval_SDR.shape, torch.amax(im_trainval_SDR), torch.amin(im_trainval_SDR))
             # print(im_trainval_SDR.shape, type(im_trainval_SDR), torch.max(im_trainval_SDR), torch.min(im_trainval_SDR), torch.mean(im_trainval_SDR))
             im_trainval = im_trainval_SDR # channel first for training
 
@@ -198,6 +206,10 @@ class openrooms(data.Dataset):
         batch_dict_brdf, frame_info = self.load_brdf_lighting(hdr_image_path, if_load_immask, mask_path, mask, seg, seg_ori, hdr_scale, frame_info)
         batch_dict.update(batch_dict_brdf)
 
+        # ====== matseg =====
+        if self.opt.cfg.DATA.load_matseg_gt:
+            mat_seg_dict = self.load_matseg(mask, im_fixedscale_SDR_uint8)
+            batch_dict.update(mat_seg_dict)
 
         return batch_dict
 
@@ -398,6 +410,73 @@ class openrooms(data.Dataset):
 
         return batch_dict_brdf, frame_info
 
+    def load_matseg(self, mask, im_fixedscale_SDR_uint8):
+        assert self.opt.cfg.DATA.load_masks
+        # >>>> Rui: Read obj mask
+        mat_aggre_map, num_mat_masks = self.get_map_aggre_map(mask) # 0 for invalid region
+        # if self.if_extra_op:
+        #     mat_aggre_map = self.extra_op(mat_aggre_map, name='mat_aggre_map', if_channel_2_input=True)
+        # if self.if_extra_op:
+        #     im_fixedscale_SDR_uint8 = self.extra_op(im_fixedscale_SDR_uint8, name='im_fixedscale_SDR_uint8')
+        # print(mat_aggre_map.shape, im_fixedscale_SDR_uint8.shape)
+        im_matseg_transformed_trainval, mat_aggre_map_transformed = self.transforms_BRDF(im_fixedscale_SDR_uint8, mat_aggre_map.squeeze()) # augmented
+        # print(im_matseg_transformed_trainval.shape, mat_aggre_map_transformed.shape)
+        mat_aggre_map = mat_aggre_map_transformed.numpy()[..., np.newaxis]
+
+        h, w, _ = mat_aggre_map.shape
+        gt_segmentation = mat_aggre_map
+        segmentation = np.zeros([50, h, w], dtype=np.uint8)
+        segmentation_valid = np.zeros([50, h, w], dtype=np.uint8)
+        for i in range(num_mat_masks+1):
+            if i == 0:
+                # deal with backgroud
+                seg = gt_segmentation == 0
+                segmentation[num_mat_masks, :, :] = seg.reshape(h, w) # segmentation[num_mat_masks] for invalid mask
+            else:
+                seg = gt_segmentation == i
+                segmentation[i-1, :, :] = seg.reshape(h, w) # segmentation[0..num_mat_masks-1] for plane instances
+                segmentation_valid[i-1, :, :] = seg.reshape(h, w) # segmentation[0..num_mat_masks-1] for plane instances
+        return {
+            'mat_aggre_map': torch.from_numpy(mat_aggre_map),  # 0 for invalid region
+            # 'mat_aggre_map_reindex': torch.from_numpy(mat_aggre_map_reindex), # gt_seg
+            'num_mat_masks': num_mat_masks,  
+            'mat_notlight_mask': torch.from_numpy(mat_aggre_map!=0).float(),
+            'instance': torch.ByteTensor(segmentation), # torch.Size([50, 240, 320])
+            'instance_valid': torch.ByteTensor(segmentation_valid), # torch.Size([50, 240, 320])
+            'semantic': 1 - torch.FloatTensor(segmentation[num_mat_masks, :, :]).unsqueeze(0), # torch.Size([50, 240, 320]) torch.Size([1, 240, 320])
+            'im_matseg_transformed_trainval': im_matseg_transformed_trainval
+        }
+    
+    def get_map_aggre_map(self, objMask):
+        cad_map = objMask[:, :, 0]
+        mat_idx_map = objMask[:, :, 1]        
+        obj_idx_map = objMask[:, :, 2] # 3rd channel: object INDEX map
+
+        mat_aggre_map = np.zeros_like(cad_map)
+        cad_ids = np.unique(cad_map)
+        num_mats = 1
+        for cad_id in cad_ids:
+            cad_mask = cad_map == cad_id
+            mat_index_map_cad = mat_idx_map[cad_mask]
+            mat_idxes = np.unique(mat_index_map_cad)
+
+            obj_idx_map_cad = obj_idx_map[cad_mask]
+            if_light = list(np.unique(obj_idx_map_cad))==[0]
+            if if_light:
+                mat_aggre_map[cad_mask] = 0
+                continue
+
+            # mat_aggre_map[cad_mask] = mat_idx_map[cad_mask] + num_mats
+            # num_mats = num_mats + max(mat_idxs)
+            cad_single_map = np.zeros_like(cad_map)
+            cad_single_map[cad_mask] = mat_idx_map[cad_mask]
+            for i, mat_idx in enumerate(mat_idxes):
+        #         mat_single_map = np.zeros_like(cad_map)
+                mat_aggre_map[cad_single_map==mat_idx] = num_mats
+                num_mats += 1
+
+        return mat_aggre_map, num_mats-1
+
 
     def loadImage(self, imName, isGama = False):
         if not(osp.isfile(imName ) ):
@@ -561,22 +640,7 @@ def collate_fn_OR(batch):
     # iterate over keys
     # print(batch[0].keys())
     for key in batch[0]:
-        if key == 'boxes_batch':
-            collated_batch[key] = dict()
-            for subkey in batch[0][key]:
-                if subkey in ['bdb2D_full', 'bdb3D_full']: # lists of original & more information (e.g. color)
-                    continue
-                if subkey in ['mask', 'random_id', 'cat_name']: # list of lists
-                    tensor_batch = [elem[key][subkey] for elem in batch]
-                else:
-                    list_of_tensor = [recursive_convert_to_torch(elem[key][subkey]) for elem in batch]
-                    try:
-                        tensor_batch = torch.cat(list_of_tensor)
-                        # print(subkey, [x['boxes_batch'][subkey].shape for x in batch], tensor_batch.shape)
-                    except RuntimeError:
-                        print(subkey, [x.shape for x in list_of_tensor])
-                collated_batch[key][subkey] = tensor_batch
-        elif key in ['frame_info', 'boxes_valid_list', 'emitter2wall_assign_info_list', 'emitters_obj_list', 'gt_layout_RAW', 'cell_info_grid', 'image_index', \
+        if key in ['frame_info', 'boxes_valid_list', 'emitter2wall_assign_info_list', 'emitters_obj_list', 'gt_layout_RAW', 'cell_info_grid', 'image_index', \
                 'gt_obj_path_alignedNew_normalized_list', 'gt_obj_path_alignedNew_original_list', \
                 'detectron_sample_dict', 'detectron_sample_dict']:
             collated_batch[key] = [elem[key] for elem in batch]

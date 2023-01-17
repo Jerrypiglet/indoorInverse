@@ -50,9 +50,9 @@ def set_up_envs(opt):
     if opt.data_root is not None:
         opt.cfg.DATASET.dataset_path = opt.data_root
 
-    if opt.cfg.PATH.OR_lists_path_if_zhengqinCVPR:
+    if opt.cfg.PATH.OR_lists_path_if_CVPR20:
         # assert False, 'paths not correctly configured! (we use Zhengqins test set as val set, but they are in a different path (/eccv20dataset/DatasetNew_test) than the main dataset'
-        opt.cfg.PATH.OR_lists_path = opt.cfg.PATH.OR_lists_path_zhengqinCVPR
+        opt.cfg.PATH.OR_lists_path = opt.cfg.PATH.OR_lists_path_CVPR20
     opt.cfg.DATASET.dataset_list = os.path.join(opt.cfg.PATH.OR_lists_path, 'list')
 
     if opt.cfg.DATASET.mini:
@@ -84,6 +84,9 @@ def set_up_envs(opt):
 
     # if opt.cfg.DEBUG.if_iiw:
     #     opt.cfg.DATASET.if_no_gt_BRDF = True
+
+    if (opt.cfg.MODEL_MATSEG.enable or opt.cfg.MODEL_MATSEG.use_as_input) and not opt.test_real:
+        opt.cfg.DATA.load_matseg_gt = True
 
     # ====== BRDF =====
     if isinstance(opt.cfg.MODEL_BRDF.enable_list, str):

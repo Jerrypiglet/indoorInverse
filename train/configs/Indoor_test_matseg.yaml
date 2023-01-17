@@ -1,0 +1,24 @@
+
+DATASET:
+  num_workers: 16 
+  dataset_name: Indoor-kitchen
+  dataset_path_local: '/home/ruizhu/Documents/Projects/OpenRooms_RAW_loader/data/indoor_synthetic'
+MODEL_BRDF:
+  enable: False
+MODEL_MATSEG:
+  enable: True
+  if_save_embedding: True
+DATA:
+  data_read_list: ''
+  im_height: 320
+  im_width: 640
+  if_load_png_not_hdr: True
+  load_brdf_gt: False
+  load_masks: False
+DEBUG:
+  if_dump_perframe_BRDF: False
+  if_fast_BRDF_labels: False
+SOLVER:
+  ims_per_batch: 6
+TEST:
+  ims_per_batch: 3

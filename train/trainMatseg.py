@@ -23,6 +23,7 @@ import torch.multiprocessing
 torch.multiprocessing.set_sharing_strategy('file_system')
 
 from dataset_openrooms_OR_BRDFLight_RAW import openrooms, collate_fn_OR
+from dataset_Indoor_RAW import Indoor
 # from dataset_openrooms_OR_BRDFLight_pickles import openrooms_pickle, collate_fn_OR
 
 from torch.nn.parallel import DistributedDataParallel as DDP
@@ -48,7 +49,7 @@ parser.add_argument("--if_eval", type=str2bool, nargs='?', const=True, default=T
 parser.add_argument("--if_vis", type=str2bool, nargs='?', const=True, default=True)
 parser.add_argument("--if_test", type=str2bool, nargs='?', const=True, default=False, help='whether use the test split to evaluate the model; useful when to benchmark the model')
 # parser.add_argument("--if_overfit_val", type=str2bool, nargs='?', const=True, default=False)
-# parser.add_argument("--if_overfit_train", type=str2bool, nargs='?', const=True, default=False)
+parser.add_argument("--if_overfit_train", type=str2bool, nargs='?', const=True, default=False)
 parser.add_argument('--epochIdFineTune', type=int, default = 0, help='the training of epoch of the loaded model')
 # The training weight
 parser.add_argument('--albedoWeight', type=float, default=1.5, help='the weight for the diffuse component')
@@ -70,7 +71,7 @@ parser.add_argument('--debug', action='store_true', help='Debug eval')
 parser.add_argument('--batch_size_override_vis', type=int, default=-1, help='')
 parser.add_argument('--if_cluster', action='store_true', help='if using cluster')
 parser.add_argument('--cluster', type=str, default='kubectl', help='cluster name if if_cluster is True', choices={"kubectl", "nvidia", "ngc"})
-parser.add_argument('--eval_every_iter', type=int, default=2000, help='')
+parser.add_argument('--eval_every_iter', type=int, default=5000, help='')
 parser.add_argument('--vis_every_iter', type=int, default=1000, help='')
 parser.add_argument('--save_every_iter', type=int, default=5000, help='')
 parser.add_argument('--debug_every_iter', type=int, default=2000, help='')
@@ -115,6 +116,8 @@ parser.add_argument('--cooldown-epochs', type=int, default=10, metavar='N',
 parser.add_argument('--decay-rate', '--dr', type=float, default=0.1, metavar='RATE',
                     help='LR decay rate (default: 0.1)')
 
+# matseg
+parser.add_argument('--invalid_index', type=int, default = 0, help='index for invalid aread (e.g. windows, lights)')
 
 parser.add_argument(
     "--config",
@@ -171,7 +174,9 @@ model.freeze_BN()
 
 if opt.cfg.MODEL_BRDF.load_pretrained_pth:
     model.load_pretrained_MODEL_BRDF(if_load_Bs=opt.cfg.MODEL_BRDF.if_bilateral)
-
+if opt.cfg.MODEL_MATSEG.enable and opt.cfg.MODEL_MATSEG.if_freeze:
+    model.turn_off_names(['MATSEG_Net'])
+    model.freeze_bn_matseg()
 model.print_net()
 
 # set up optimizers
@@ -186,6 +191,23 @@ scheduler = None
 # scheduler = ReduceLROnPlateau(optimizer, 'min', factor=0.1, patience=50, cooldown=0, verbose=True, threshold_mode='rel', threshold=0.01)
 # <<<<<<<<<<<<< MODEL AND OPTIMIZER
 
+# >>>>>>>>>>>>> MATSEG
+from utils.bin_mean_shift import Bin_Mean_Shift
+from utils.bin_mean_shift_N import Bin_Mean_Shift_N
+ENABLE_MATSEG = opt.cfg.MODEL_MATSEG.enable
+opt.bin_mean_shift_device = opt.device if opt.cfg.MODEL_MATSEG.embed_dims <= 4 else 'cpu'
+# opt.batch_size_override_vis = -1
+if ENABLE_MATSEG:
+    if opt.cfg.MODEL_MATSEG.embed_dims > 2:
+        opt.batch_size_override_vis = 1      
+# opt.batch_size_override_vis = -1 if (opt.bin_mean_shift_device == 'cpu' or not ENABLE_MATSEG) else 1
+if opt.cfg.MODEL_MATSEG.embed_dims == 2:
+    bin_mean_shift = Bin_Mean_Shift(device=opt.device, invalid_index=opt.invalid_index)
+else:
+    bin_mean_shift = Bin_Mean_Shift_N(embedding_dims=opt.cfg.MODEL_MATSEG.embed_dims, \
+        device=opt.bin_mean_shift_device, invalid_index=opt.invalid_index, if_freeze=opt.cfg.MODEL_MATSEG.if_freeze)
+opt.bin_mean_shift = bin_mean_shift
+# <<<<<<<<<<<<< MATSEG
 
 # >>>>>>>>>>>>> DATASET
 from utils.utils_transforms import get_transform_BRDF
@@ -193,14 +215,17 @@ from utils.utils_transforms import get_transform_BRDF
 transforms_train_BRDF = get_transform_BRDF('train', opt)
 transforms_val_BRDF = get_transform_BRDF('val', opt)
 
-# openrooms_to_use = openrooms_pickle
-openrooms_to_use = openrooms
+if opt.cfg.DATASET.dataset_name.startswith('Indoor-'):
+    dataset_to_use = Indoor
+else:    
+    dataset_to_use = openrooms
 make_data_loader_to_use = make_data_loader
-eval_split = 'test' if opt.if_test else 'valtest'
+# eval_split = 'test' if opt.if_test else 'valtest'
+eval_split = 'test' if opt.if_test else 'val'
 vis_split = 'test' if opt.if_test else 'val'
 
 if opt.if_train:
-    brdf_dataset_train = openrooms_to_use(opt, 
+    brdf_dataset_train = dataset_to_use(opt, 
         transforms_BRDF = transforms_train_BRDF, 
         cascadeLevel = opt.cascadeLevel, split = 'train', if_for_training=True, logger=logger)
     brdf_loader_train, _ = make_data_loader_to_use(
@@ -213,7 +238,7 @@ if opt.if_train:
 )
 
 if opt.if_eval:
-    brdf_dataset_val = openrooms_to_use(opt, 
+    brdf_dataset_val = dataset_to_use(opt, 
         transforms_BRDF = transforms_val_BRDF, 
         cascadeLevel = opt.cascadeLevel, split=eval_split, if_for_training=False, load_first = -1, logger=logger)
     brdf_loader_val, _ = make_data_loader_to_use(
@@ -227,7 +252,7 @@ if opt.if_eval:
 )
 
 # if opt.if_overfit_val and opt.if_train:
-#     brdf_dataset_train = openrooms_to_use(opt, 
+#     brdf_dataset_train = dataset_to_use(opt, 
 #         transforms_BRDF = transforms_val_BRDF, 
 #         cascadeLevel = opt.cascadeLevel, split=eval_split, if_for_training=True, load_first = -1, logger=logger)
 
@@ -240,22 +265,22 @@ if opt.if_eval:
 #         collate_fn=collate_fn_OR, 
 #    )
 
-# if opt.if_overfit_train and opt.if_eval:
-#     brdf_dataset_val = openrooms_to_use(opt, 
-#         transforms_BRDF = transforms_val_BRDF, 
-#         cascadeLevel = opt.cascadeLevel, split = 'train', if_for_training=False, load_first = -1, logger=logger)
-#     brdf_loader_val, _ = make_data_loader_to_use(
-#         opt,
-#         brdf_dataset_val,
-#         is_train=False,
-#         start_iter=0,
-#         logger=logger,
-#         collate_fn=collate_fn_OR, 
-#         if_distributed_override=opt.cfg.DATASET.if_eval_dist and opt.distributed # default: True; -> should use gather from all GPUs if need all batches
-#    )
+if opt.if_overfit_train and opt.if_eval:
+    brdf_dataset_val = dataset_to_use(opt, 
+        transforms_BRDF = transforms_val_BRDF, 
+        cascadeLevel = opt.cascadeLevel, split = 'train', if_for_training=False, load_first = -1, logger=logger)
+    brdf_loader_val, _ = make_data_loader_to_use(
+        opt,
+        brdf_dataset_val,
+        is_train=False,
+        start_iter=0,
+        logger=logger,
+        collate_fn=collate_fn_OR, 
+        if_distributed_override=opt.cfg.DATASET.if_eval_dist and opt.distributed # default: True; -> should use gather from all GPUs if need all batches
+   )
 
 if opt.if_vis:
-    brdf_dataset_val_vis = openrooms_to_use(opt, 
+    brdf_dataset_val_vis = dataset_to_use(opt, 
         transforms_BRDF = transforms_val_BRDF, 
         cascadeLevel = opt.cascadeLevel, split=vis_split, task='vis', if_for_training=False, load_first = opt.cfg.TEST.vis_max_samples, logger=logger)
     brdf_loader_val_vis, batch_size_val_vis = make_data_loader(
@@ -269,21 +294,21 @@ if opt.if_vis:
         collate_fn=collate_fn_OR, 
         if_distributed_override=False
 )
-    # if opt.if_overfit_train:
-    #     brdf_dataset_val_vis = openrooms_to_use(opt, 
-    #         transforms_BRDF = transforms_val_BRDF, 
-    #         cascadeLevel = opt.cascadeLevel, split = 'train', task='vis', if_for_training=False, load_first = opt.cfg.TEST.vis_max_samples, logger=logger)
-    #     brdf_loader_val_vis, batch_size_val_vis = make_data_loader(
-    #         opt,
-    #         brdf_dataset_val_vis,
-    #         is_train=False,
-    #         start_iter=0,
-    #         logger=logger,
-    #         workers=2,
-    #         batch_size_override=opt.batch_size_override_vis, 
-    #         collate_fn=collate_fn_OR, 
-    #         if_distributed_override=False
-    #    )
+    if opt.if_overfit_train:
+        brdf_dataset_val_vis = dataset_to_use(opt, 
+            transforms_BRDF = transforms_val_BRDF, 
+            cascadeLevel = opt.cascadeLevel, split='train', task='vis', if_for_training=False, load_first = opt.cfg.TEST.vis_max_samples, logger=logger)
+        brdf_loader_val_vis, batch_size_val_vis = make_data_loader(
+            opt,
+            brdf_dataset_val_vis,
+            is_train=False,
+            start_iter=0,
+            logger=logger,
+            workers=2,
+            batch_size_override=opt.batch_size_override_vis, 
+            collate_fn=collate_fn_OR, 
+            if_distributed_override=False
+       )
 
 
 # <<<<<<<<<<<<< DATASET
@@ -311,12 +336,13 @@ synchronize()
 
 if not opt.if_train:
     val_params = {'writer': writer, 'logger': logger, 'opt': opt, 'tid': tid}
+    val_params.update({'bin_mean_shift': bin_mean_shift})
     if opt.if_vis:
         val_params.update({'batch_size_val_vis': batch_size_val_vis})
         with torch.no_grad():
             vis_val_epoch_joint(brdf_loader_val_vis, model, val_params)
         synchronize()
-    if opt.if_evalimages/demo_eval_scene_shapes-vis_count-val-kitchen_1.png:
+    if opt.if_eval:
         val_params.update({'brdf_dataset_val': brdf_dataset_val})
         with torch.no_grad():
             val_epoch_joint(brdf_loader_val, model, val_params)
@@ -362,6 +388,7 @@ else:
             print((tid - tid_start) % opt.eval_every_iter, opt.eval_every_iter)
             if opt.vis_every_iter != -1 and (tid - tid_start) % opt.vis_every_iter == 0:
                 val_params = {'writer': writer, 'logger': logger, 'opt': opt, 'tid': tid}
+                val_params.update({'bin_mean_shift': bin_mean_shift})
                 if opt.if_vis:
                     val_params.update({'batch_size_val_vis': batch_size_val_vis})
                     with torch.no_grad():
@@ -371,6 +398,7 @@ else:
 
             if opt.eval_every_iter != -1 and (tid - tid_start) % opt.eval_every_iter == 0:
                 val_params = {'writer': writer, 'logger': logger, 'opt': opt, 'tid': tid}
+                val_params.update({'bin_mean_shift': bin_mean_shift})
                 if opt.if_eval:
                     val_params.update({'brdf_dataset_val': brdf_dataset_val})
                     with torch.no_grad():
@@ -410,6 +438,14 @@ else:
             loss = 0.
             loss_keys_backward = []
             loss_keys_print = []
+
+            if opt.cfg.MODEL_MATSEG.enable and (not opt.cfg.MODEL_MATSEG.if_freeze):
+                #  and ((not opt.cfg.MODEL_MATSEG.freeze) or opt.cfg.MODEL_MATSEG.embed_dims <= 4):
+                loss_keys_backward.append('loss_matseg-ALL')
+                loss_keys_print.append('loss_matseg-ALL')
+                loss_keys_print.append('loss_matseg-pull')
+                loss_keys_print.append('loss_matseg-push')
+                loss_keys_print.append('loss_matseg-binary')
 
             if opt.cfg.MODEL_BRDF.enable and opt.cfg.MODEL_BRDF.enable_BRDF_decoders:
                 if not (opt.cfg.MODEL_BRDF.if_freeze or opt.cfg.MODEL_LIGHT.freeze_BRDF_Net):

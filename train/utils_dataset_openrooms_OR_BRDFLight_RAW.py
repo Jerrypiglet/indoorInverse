@@ -45,7 +45,7 @@ def get_valid_scenes(opt, frames_list_path, split, logger=None):
     return meta_split_scene_name_list
 
 def make_dataset(opt, split, task, data_root=None, data_list=None, logger=None):
-    assert split in ['train', 'val', 'test']
+    assert split in ['train', 'val', 'test', 'valtest'], 'Unsupported split: %s'%split
     if not os.path.isfile(data_list):
         raise (RuntimeError("Image list file do not exist: " + data_list + "\n"))
     if logger is None:

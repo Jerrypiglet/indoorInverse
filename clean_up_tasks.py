@@ -6,7 +6,7 @@ import shutil
 list_path = 'clean_up_tasks.txt'
 black_list_path = 'clean_up_tasks_black.txt'
 
-folders = ['checkpoints', 'logs', 'summary_vis']
+folders = ['checkpoints', 'logs', 'summary_vis', 'Checkpoint']
 
 with open(list_path) as f:
     mylist = f.read().splitlines() 

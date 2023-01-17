@@ -12,9 +12,11 @@ import scipy.ndimage as ndimage
 
 from train_funcs_brdf import get_labels_dict_brdf, postprocess_brdf
 from train_funcs_light import get_labels_dict_light, postprocess_light
+from train_funcs_matseg import get_labels_dict_matseg, postprocess_matseg, val_epoch_matseg
 
-
+from utils.match_segmentation import MatchSegmentation
 from utils.utils_metrics import compute_errors_depth_nyu
+from utils.utils_vis import vis_index_map, reindex_output_map, vis_disp_colormap, colorize
 
 from icecream import ic
 import pickle
@@ -27,6 +29,7 @@ def get_time_meters_joint():
     time_meters['forward'] = AverageMeter()
     time_meters['loss_brdf'] = AverageMeter()
     time_meters['loss_light'] = AverageMeter()
+    time_meters['loss_matseg'] = AverageMeter()
     time_meters['backward'] = AverageMeter()    
     return time_meters
 
@@ -52,13 +55,22 @@ def get_light_meters(opt):
 def get_labels_dict_joint(data_batch, opt):
 
     # prepare input_dict from data_batch (from dataloader)
-    labels_dict = {'im_trainval_SDR': data_batch['im_trainval_SDR'].cuda(non_blocking=True), 'im_fixedscale_SDR': data_batch['im_fixedscale_SDR'].cuda(non_blocking=True), 'batch_idx': data_batch['image_index']}
-    if 'im_fixedscale_SDR_next' in data_batch:
-        labels_dict['im_fixedscale_SDR_next'] = data_batch['im_fixedscale_SDR_next'].cuda(non_blocking=True)
+    labels_dict = {'im_trainval_SDR': data_batch['im_trainval_SDR'].cuda(non_blocking=True), 'im_fixedscale_SDR': data_batch['im_fixedscale_SDR'].cuda(non_blocking=True), 'batch_idx': data_batch['image_index'], 'im_paths': data_batch['image_path']}
+    # if 'im_fixedscale_SDR_next' in data_batch:
+    #     labels_dict['im_fixedscale_SDR_next'] = data_batch['im_fixedscale_SDR_next'].cuda(non_blocking=True)
 
-    input_batch_brdf, labels_dict_brdf, pre_batch_dict_brdf = get_labels_dict_brdf(data_batch, opt, return_input_batch_as_list=True)
-    list_from_brdf = [input_batch_brdf, labels_dict_brdf, pre_batch_dict_brdf]
-    labels_dict.update({'input_batch_brdf': torch.cat(input_batch_brdf, dim=1), 'pre_batch_dict_brdf': pre_batch_dict_brdf})
+    if opt.cfg.DATA.load_matseg_gt:
+        labels_dict_matseg = get_labels_dict_matseg(data_batch, opt)
+    else:
+        labels_dict_matseg = {}
+    labels_dict.update(labels_dict_matseg)
+    
+    if opt.cfg.DATA.load_brdf_gt:
+        input_batch_brdf, labels_dict_brdf, pre_batch_dict_brdf = get_labels_dict_brdf(data_batch, opt, return_input_batch_as_list=True)
+        list_from_brdf = [input_batch_brdf, labels_dict_brdf, pre_batch_dict_brdf]
+        labels_dict.update({'input_batch_brdf': torch.cat(input_batch_brdf, dim=1), 'pre_batch_dict_brdf': pre_batch_dict_brdf})
+    else:
+        labels_dict_brdf = {}
     labels_dict.update(labels_dict_brdf)
 
     if opt.cfg.DATA.load_light_gt:
@@ -86,13 +98,18 @@ def forward_joint(is_train, labels_dict, model, opt, time_meters, if_vis=False, 
     if loss_dict is None:
         loss_dict = {}
 
-    if opt.cfg.MODEL_BRDF.enable:
+    if opt.cfg.MODEL_MATSEG.enable and not opt.test_real:
+        output_dict, loss_dict = postprocess_matseg(labels_dict, output_dict, loss_dict, opt, time_meters)
+        time_meters['loss_matseg'].update(time.time() - time_meters['ts'])
+        time_meters['ts'] = time.time()
+
+    if opt.cfg.MODEL_BRDF.enable and not opt.test_real:
         if_loss_brdf = if_loss and opt.cfg.DATA.load_brdf_gt and (not opt.cfg.DATASET.if_no_gt_BRDF)
         output_dict, loss_dict = postprocess_brdf(labels_dict, output_dict, loss_dict, opt, time_meters, tid=tid, if_loss=if_loss_brdf)
         time_meters['loss_brdf'].update(time.time() - time_meters['ts'])
         time_meters['ts'] = time.time()
 
-    if opt.cfg.MODEL_LIGHT.enable:
+    if opt.cfg.MODEL_LIGHT.enable and not opt.test_real:
         output_dict, loss_dict = postprocess_light(labels_dict, output_dict, loss_dict, opt, time_meters)
         time_meters['loss_light'].update(time.time() - time_meters['ts'])
         time_meters['ts'] = time.time()
@@ -104,12 +121,21 @@ def val_epoch_joint(brdf_loader_val, model, params_mis):
     writer, logger, opt, tid = params_mis['writer'], params_mis['logger'], params_mis['opt'], params_mis['tid']
     ENABLE_BRDF = opt.cfg.MODEL_BRDF.enable and opt.cfg.DATA.load_brdf_gt
     ENABLE_LIGHT = opt.cfg.MODEL_LIGHT.enable
+    ENABLE_MATSEG = opt.cfg.MODEL_MATSEG.enable
 
     logger.info(red('===Evaluating for %d batches'%len(brdf_loader_val)))
 
     model.eval()
     
     loss_keys = []
+
+    if opt.cfg.MODEL_MATSEG.enable:
+        loss_keys += [
+            'loss_matseg-ALL', 
+            'loss_matseg-pull', 
+            'loss_matseg-push', 
+            'loss_matseg-binary', 
+        ]
 
     if opt.cfg.MODEL_BRDF.enable:
         if opt.cfg.MODEL_BRDF.enable_BRDF_decoders:
@@ -260,6 +286,9 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
 
     time_meters = get_time_meters_joint()
 
+    if opt.cfg.MODEL_MATSEG.enable:
+        match_segmentation = MatchSegmentation()
+
     im_paths_list = []
     albedoBatch_list = []
     normalBatch_list = []
@@ -331,7 +360,7 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                 if opt.is_master and not opt.if_plotted:
                     writer.add_image('VAL_im/%d'%(sample_idx), im_single, tid, dataformats='HWC')
                     writer.add_image('VAL_im_cropped/%d'%(sample_idx), im_single[:im_h_resized_to_batch[sample_idx_batch], :im_w_resized_to_batch[sample_idx_batch]], tid, dataformats='HWC')
-                    writer.add_image('VAL_pad_mask/%d'%(sample_idx), data_batch['pad_mask'][sample_idx_batch]*255, tid, dataformats='HW')
+                    # writer.add_image('VAL_pad_mask/%d'%(sample_idx), data_batch['pad_mask'][sample_idx_batch]*255, tid, dataformats='HW')
                     if opt.cfg.DEBUG.if_dump_perframe_BRDF:
                         Image.fromarray((im_single*255.).astype(np.uint8)).save('{0}/{1}_im_{2}.png'.format(opt.summary_vis_path_task, tid, sample_idx) )
 
@@ -347,13 +376,122 @@ def vis_val_epoch_joint(brdf_loader_val, model, params_mis):
                         im_ = im_.resize((im_w_resized_to*2, im_h_resized_to*2), Image.ANTIALIAS)
                         im_.save(str(real_sample_im_path))
 
+            # ======= Vis clusters for mat-seg
+            if opt.cfg.DATA.load_matseg_gt:
+                for sample_idx_batch in range(input_dict['mat_aggre_map_cpu'].shape[0]):
+                    sample_idx = sample_idx_batch+batch_size*batch_id
+                    if sample_idx >= opt.cfg.TEST.vis_max_samples:
+                        break
+
+                    mat_aggre_map_GT_single = input_dict['mat_aggre_map_cpu'][sample_idx_batch].numpy().squeeze()
+                    matAggreMap_GT_single_vis = vis_index_map(mat_aggre_map_GT_single)
+                    mat_notlight_mask_single = input_dict['mat_notlight_mask_cpu'][sample_idx_batch].numpy().squeeze()
+                    if opt.is_master:
+                        writer.add_image('VAL_matseg-aggre_map_GT/%d'%(sample_idx), matAggreMap_GT_single_vis, tid, dataformats='HWC')
+                        writer.add_image('VAL_matseg-notlight_mask_GT/%d'%(sample_idx), mat_notlight_mask_single, tid, dataformats='HW')
+
+            if opt.cfg.MODEL_MATSEG.enable:
+                b, c, h, w = output_dict['logit'].size()
+                bin_mean_shift = params_mis['bin_mean_shift']
+                for sample_idx_batch, (logit_single, embedding_single) in enumerate(zip(output_dict['logit'].detach(), output_dict['embedding'].detach())):
+                    sample_idx = sample_idx_batch+batch_size*batch_id
+                    if sample_idx >= opt.cfg.TEST.vis_max_samples:
+                        break
+
+                    # if sample_idx_batch >= num_val_vis_MAX:
+                    #     break
+                    ts_start_vis = time.time()
+
+                    if opt.cfg.MODEL_MATSEG.embed_dims <= 4:
+                        # prob_single = torch.sigmoid(logit_single)
+                        if not opt.test_real:
+                            prob_single = input_dict['mat_notlight_mask_cpu'][sample_idx_batch].to(opt.device).float()
+                        else:
+                            prob_single = torch.ones(h, w, 1).to(opt.device).float()
+
+                        # fast mean shift
+                        if opt.bin_mean_shift_device == 'cpu':
+                            prob_single, logit_single, embedding_single = prob_single.cpu(), logit_single.cpu(), embedding_single.cpu()
+                        segmentation, sampled_segmentation = bin_mean_shift.test_forward(
+                            prob_single, embedding_single, mask_threshold=0.1)
+                        
+                        # since GT plane segmentation is somewhat noise, the boundary of plane in GT is not well aligned, 
+                        # we thus use avg_pool_2d to smooth the segmentation results
+                        b = segmentation.t().view(1, -1, h, w)
+                        pooling_b = torch.nn.functional.avg_pool2d(b, (7, 7), stride=1, padding=(3, 3))
+                        b = pooling_b.view(-1, h*w).t()
+                        segmentation = b
+                        # return cluster results
+                        predict_segmentation = segmentation.cpu().numpy().argmax(axis=1) # reshape to [h, w]: [0, 1, ..., len(matching)-1]; use this for mask pooling!!!!
+
+                        if not opt.test_real:
+                            # greedy match of predict segmentation and ground truth segmentation using cross entropy
+                            # to better visualization
+                            gt_plane_num = input_dict['num_mat_masks_batch'][sample_idx_batch]
+                            matching = match_segmentation(segmentation, prob_single.view(-1, 1), input_dict['instance'][sample_idx_batch], gt_plane_num)
+
+                            # reindexing to matching gt segmentation for better visualization
+                            matching = matching.cpu().numpy().reshape(-1)
+                            used = set([])
+                            max_index = max(matching) + 1
+                            for i, a in zip(range(len(matching)), matching):
+                                if a in used:
+                                    matching[i] = max_index
+                                    max_index += 1
+                                else:
+                                    used.add(a)
+                            
+                            predict_segmentation = matching[predict_segmentation] # matching GT: [0, 1, ... N-1]
+
+                        # np.save('tmp/predict_segmentation_ori_%d.npy'%(max_index), predict_segmentation)
+                        # np.save('tmp/instance_%d.npy'%(max_index), input_dict['instance'][sample_idx_batch].cpu().numpy().squeeze())
+                        # np.save('tmp/gt_%d.npy'%(max_index), input_dict['mat_aggre_map_cpu'][sample_idx_batch].numpy().squeeze())
+                        # np.save('tmp/matching_%d.npy'%(max_index), matching)
+                        # np.save('tmp/predict_segmentation_matched%d.npy'%(max_index), predict_segmentation)
+
+                        # mask out non planar region
+                        predict_segmentation = predict_segmentation.reshape(h, w) # [0..N-1]
+                        predict_segmentation += 1 # 0 for invalid region
+                        predict_segmentation[prob_single.cpu().squeeze().numpy() <= 0.1] = opt.invalid_index
+
+                        # ===== vis
+                        mat_aggre_map_pred_single = predict_segmentation.squeeze()
+                        matAggreMap_pred_single_vis = vis_index_map(mat_aggre_map_pred_single)
+
+                    if opt.is_master:
+                        if opt.cfg.MODEL_MATSEG.embed_dims <= 4:
+                            writer.add_image('VAL_matseg-aggre_map_PRED/%d'%(sample_idx), matAggreMap_pred_single_vis, tid, dataformats='HWC')
+                            # if opt.cfg.MODEL_MATSEG.albedo_pooling_debug and not opt.if_cluster:
+                            #     np.save('tmp/demo_%s/matseg_pred_tid%d_idx%d.npy'%(opt.task_name, tid, sample_idx), matAggreMap_pred_single_vis)
+    
+                        embedding_single_np = embedding_single.detach().cpu().numpy()
+                        if opt.cfg.MODEL_MATSEG.if_save_embedding:
+                            npy_path = Path(opt.summary_vis_path_task) / ('matseg_pred_embedding_tid%d_idx%d.npy'%(tid, sample_idx))
+                            np.save(str(npy_path), embedding_single_np)
+
+                        embedding_single_ = embedding_single.permute(1, 2, 0)
+                        for i in [h//4, h//2, h//4*3]:
+                            for j in [w//4, w//2, w//4*3]:
+                                query_pixel = embedding_single_[i, j, :]
+                                dist_ = bin_mean_shift.cal_distance_matrix(query_pixel.reshape(1, -1), embedding_single_.reshape(-1, opt.cfg.MODEL_MATSEG.embed_dims))
+                                dist_ = dist_.detach().cpu().numpy().flatten().reshape(h, w)
+                                dist_ = 1. - dist_ / (np.amax(dist_)+1e-6)
+                                dist_[i-1:i+2, j-1:j+2] = 0.
+                                writer.add_image('VAL_matseg-affinity-%d_PRED/%d-%d'%(sample_idx, i, j), \
+                                    vis_disp_colormap(dist_, normalize=False, cmap_name='viridis')[0], tid, dataformats='HWC')
+
+
+                    logger.info('Vis batch for %.2f seconds.'%(time.time()-ts_start_vis))
+
+
             # ===== Vis BRDF 1/2
             # print(((input_dict['albedoBatch'] ) ** (1.0/2.2) ).data.shape) # [b, 3, h, w]
             im_paths_list.append(input_dict['im_paths'])
-            imBatch_list.append(input_dict['imBatch'])
-            imBatch_vis_list.append(data_batch['im_fixedscale_SDR'])
-            segAllBatch_list.append(input_dict['segAllBatch'])
-            segBRDFBatch_list.append(input_dict['segBRDFBatch'])
+            if opt.cfg.DATA.load_brdf_gt:
+                imBatch_list.append(input_dict['imBatch'])
+                imBatch_vis_list.append(data_batch['im_fixedscale_SDR'])
+                segAllBatch_list.append(input_dict['segAllBatch'])
+                segBRDFBatch_list.append(input_dict['segBRDFBatch'])
             if 'al' in opt.cfg.DATA.data_read_list:
                 albedoBatch_list.append(input_dict['albedoBatch'])
             if 'no' in opt.cfg.DATA.data_read_list:

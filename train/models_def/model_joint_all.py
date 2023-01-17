@@ -9,6 +9,9 @@ import torch.nn.functional as F
 import models_def.models_brdf as models_brdf # basic model
 import models_def.models_light as models_light 
 
+from models_def.model_matseg import Baseline as models_matseg
+from models_def.model_matseg import logit_embedding_to_instance
+
 from icecream import ic
 
 import models_def.BilateralLayer as bs
@@ -21,6 +24,13 @@ class Model_Joint(nn.Module):
         self.non_learnable_layers = {}
 
         self.load_brdf_gt = self.opt.cfg.DATA.load_brdf_gt
+
+        if self.cfg.MODEL_MATSEG.enable:
+            input_dim = 3
+            self.MATSEG_Net = models_matseg(self.cfg.MODEL_MATSEG, embed_dims=self.cfg.MODEL_MATSEG.embed_dims, input_dim=input_dim)
+
+            if self.opt.cfg.MODEL_MATSEG.load_pretrained_pth:
+                self.load_pretrained_matseg()
 
         if self.cfg.MODEL_BRDF.enable:
             in_channels = 3
@@ -108,6 +118,16 @@ class Model_Joint(nn.Module):
     def forward(self, input_dict, if_has_gt_BRDF=True):
         return_dict = {}
         input_dict_extra = {}
+
+        if self.cfg.MODEL_MATSEG.enable:
+            return_dict_matseg = self.forward_matseg(input_dict) # {'prob': prob, 'embedding': embedding, 'feats_mat_seg_dict': feats_mat_seg_dict}
+            input_dict_guide_matseg = return_dict_matseg['feats_matseg_dict']
+            input_dict_guide_matseg['guide_from'] = 'matseg'
+            input_dict_guide = input_dict_guide_matseg
+        else:
+            return_dict_matseg = {}
+            input_dict_guide_matseg = None
+        return_dict.update(return_dict_matseg)
 
         if self.cfg.MODEL_BRDF.enable:
             if self.cfg.MODEL_BRDF.if_freeze:
@@ -296,7 +316,6 @@ class Model_Joint(nn.Module):
         # print(axisPred_ori.shape, lambPred_ori.shape, weightPred_ori.shape)
         return axisPred_ori, lambPred_ori, weightPred_ori
 
-
     def forward_light(self, input_dict, return_dict_brdf):
         im_h, im_w = self.cfg.DATA.im_height, self.cfg.DATA.im_width
 
@@ -434,6 +453,19 @@ class Model_Joint(nn.Module):
 
         return return_dict
 
+    def forward_matseg(self, input_dict):
+        # input_list = [input_dict['im_batch_matseg']]
+        input_list = [input_dict['im_trainval_SDR']]
+        # if self.cfg.MODEL_MATSEG.use_semseg_as_input:
+        #     input_list.append(input_dict['semseg_label'].float().unsqueeze(1) / float(self.opt.cfg.MODEL_SEMSEG.semseg_classes))
+
+        if self.cfg.MODEL_MATSEG.if_freeze:
+            self.MATSEG_Net.eval()
+            with torch.no_grad():
+                return self.MATSEG_Net(torch.cat(input_list, 1))
+        else:
+            return self.MATSEG_Net(torch.cat(input_list, 1))
+
     def print_net(self):
         count_grads = 0
         for name, param in self.named_parameters():
@@ -520,6 +552,25 @@ class Model_Joint(nn.Module):
 
             self.logger.info(magenta('Loaded pretrained LightNet-%s from %s'%(saved_name, pickle_path)))
 
+
+    def load_pretrained_matseg(self):
+        # self.print_net()
+        model_path = os.path.join(self.opt.CKPT_PATH, self.opt.cfg.MODEL_MATSEG.pretrained_pth)
+        if os.path.isfile(model_path):
+            self.logger.info(red("=> loading checkpoint '{}'".format(model_path)))
+            state_dict = torch.load(model_path, map_location=torch.device("cpu"))['model']
+            # print(state_dict.keys())
+            state_dict = {k.replace('UNet.', '').replace('MATSEG_Net.', ''): v for k, v in state_dict.items()}
+            state_dict = {k: v for k, v in state_dict.items() if ('pred_depth' not in k) and ('pred_surface_normal' not in k) and ('pred_param' not in k)}
+
+            # replace_dict = {'layer0.0': 'layer0_1.0', 'layer0.1': 'layer0_1.1', 'layer0.3': 'layer0_2.0', 'layer0.4': 'layer0_2.1', 'layer0.6': 'layer0_3.0', 'layer0.7': 'layer0_3.1'}
+            # state_dict = {k.replace(key, replace_dict[key]): v for k, v in state_dict.items() for key in replace_dict}
+            
+            # print(state_dict.keys())
+            self.MATSEG_Net.load_state_dict(state_dict, strict=True)
+            self.logger.info(red("=> loaded checkpoint '{}'".format(model_path)))
+        else:
+            raise RuntimeError("=> no checkpoint found at '{}'".format(model_path))
 
     def turn_off_all_params(self):
         for name, param in self.named_parameters():

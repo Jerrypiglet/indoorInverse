@@ -13,7 +13,7 @@ from models_def.models_brdf import LSregressDiffSpec
 def get_labels_dict_brdf(data_batch, opt, return_input_batch_as_list=False):
     input_dict = {}
     
-    input_dict['im_paths'] = data_batch['image_path']
+    # input_dict['im_paths'] = data_batch['image_path']
     # Load the image from cpu to gpu
     # im_cpu = (data_batch['im_trainval'].permute(0, 3, 1, 2) )
     im_cpu = data_batch['im_trainval']
@@ -21,7 +21,7 @@ def get_labels_dict_brdf(data_batch, opt, return_input_batch_as_list=False):
     # print(torch.max(input_dict['imBatch']), torch.min(input_dict['imBatch']), '+++')
 
     input_dict['brdf_loss_mask'] = data_batch['brdf_loss_mask'].cuda(non_blocking=True)
-    input_dict['pad_mask'] = data_batch['pad_mask'].cuda(non_blocking=True)
+    # input_dict['pad_mask'] = data_batch['pad_mask'].cuda(non_blocking=True)
     if 'frame_info' in data_batch:
         input_dict['frame_info'] = data_batch['frame_info']
     if opt.cfg.DEBUG.if_test_real:
@@ -71,6 +71,10 @@ def get_labels_dict_brdf(data_batch, opt, return_input_batch_as_list=False):
     # print(input_dict['segBRDFBatch'].shape, input_dict['brdf_loss_mask'].shape)
     input_dict['segBRDFBatch'] = input_dict['segBRDFBatch'] * input_dict['brdf_loss_mask'].unsqueeze(1)
     input_dict['segAllBatch'] = input_dict['segAllBatch'] * input_dict['brdf_loss_mask'].unsqueeze(1)
+
+    if opt.cfg.DATA.load_matseg_gt:
+        matAggreMap_cpu = data_batch['mat_aggre_map'].permute(0, 3, 1, 2) # [b, 1, h, w]
+        input_dict['matAggreMapBatch'] = matAggreMap_cpu.cuda(non_blocking=True)
 
     preBatchDict = {}
     if opt.cfg.DATA.load_brdf_gt:
@@ -139,6 +143,7 @@ def postprocess_brdf(input_dict, output_dict, loss_dict, opt, time_meters, eval_
         if 'al' in opt.cfg.MODEL_BRDF.enable_list + eval_module_list:
             # albedoPreds = []
             if opt.cfg.MODEL_BRDF.use_scale_aware_albedo or opt.cfg.DEBUG.if_test_real:
+                assert False, 'disabled for now'
                 albedoPred = output_dict['albedoPred']
 
             if 'al' in opt.cfg.DATA.data_read_list:
@@ -193,6 +198,7 @@ def postprocess_brdf(input_dict, output_dict, loss_dict, opt, time_meters, eval_
 
         if 'de' in opt.cfg.MODEL_BRDF.enable_list + eval_module_list:
             if opt.cfg.MODEL_BRDF.use_scale_aware_depth or opt.cfg.DEBUG.if_test_real:
+                assert False, 'disabled for now'
                 depthPred = output_dict['depthPred']
             else:
                 depthPred = output_dict['depthPred_aligned']
@@ -202,6 +208,7 @@ def postprocess_brdf(input_dict, output_dict, loss_dict, opt, time_meters, eval_
                     loss_dict['loss_brdf-depth'] = []
 
                     if opt.cfg.MODEL_BRDF.loss.depth.if_use_paper_loss:
+                        assert False, 'disabled for now'
                         loss =  torch.sum( 
                                 (torch.log(depthPred+1) - torch.log(input_dict['depthBatch']+0.001) )
                                 * ( torch.log(depthPred+0.001) - torch.log(input_dict['depthBatch']+0.001) )

@@ -87,14 +87,31 @@ Demo test script which loads pretrained model by *Li'20*.
 ```
 ### To run on the UCSD-prp cluster
 See [here](extra_files/README_ucsd-prp.md) for instructions on running the code on the UCSD Pacific Research Platform(PRP) cluster.
-## Notes by Rui
-  
-Training script used by Rui:
-```bash
-python rui_tool.py create -d --gpus 1 -f rui_torch_job_2gpu_v6_mclab.yaml --memr 20 --meml 50 --cpur 15 --cpul 30 -s 'python -m torch.distributed.launch --master_port 5320 --nproc_per_node=1 trainBRDFLight.py --if_cluster --task_name DATE-train_POD_trainBRDF_scratch --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 16 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height 240 DATA.im_width 320 SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.if_load_png_not_hdr True DATASET.mini False MODEL_BRDF.load_pretrained_pth False'
+
+## Training/testing scripts
+
+There are two versions of splits: (1) from Li'20, (2) from Zhu'22. See [here](extra_files/count_scenes).py for split files and counts.
+
+Train with Li'20 model, on Zhu'22 splits:
+
+``` bash
+
 ```
 
-# From original README file
+To run Li20 original model:
+
+``` bash
+(py38) ruizhu@ubuntu:~/Documents/Projects/indoorInverse/third-party/InverseRenderingOfIndoorScene$ CUDA_VISIBLE_DEVICES=1 python trainBRDF.py --if_CVPR22_splits --experiment tmp_CVPR20 --cuda --dataRoot /ruidata/openrooms_raw_BRDF
+```
+
+## Notes by Rui
+  
+<!-- Training script used by Rui:
+```bash
+python rui_tool.py create -d --gpus 1 -f rui_torch_job_2gpu_v6_mclab.yaml --memr 20 --meml 50 --cpur 15 --cpul 30 -s 'python -m torch.distributed.launch --master_port 5320 --nproc_per_node=1 trainBRDFLight.py --if_cluster --task_name DATE-train_POD_trainBRDF_scratch --if_train True --if_val True --if_vis True --eval_every_iter 5000 --if_overfit_train False DATASET.num_workers 16 MODEL_BRDF.enable True MODEL_BRDF.load_pretrained_pth False MODEL_BRDF.enable_BRDF_decoders True MODEL_BRDF.enable_list al_de_no_ro MODEL_BRDF.loss_list al_de_no_ro DATA.data_read_list al_de_no_ro DATA.im_height 240 DATA.im_width 320 SOLVER.ims_per_batch 8 TEST.ims_per_batch 8 DATA.if_load_png_not_hdr True DATASET.mini False MODEL_BRDF.load_pretrained_pth False'
+``` -->
+
+# Original README
 ## 2. Useful links:
 * Project page: http://cseweb.ucsd.edu/~visco…/projects/CVPR20InverseIndoor/
 * Trained models: http://cseweb.ucsd.edu/~viscomp/projects/CVPR20InverseIndoor/models.zip

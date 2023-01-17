@@ -17,6 +17,7 @@ pretrained/
 summary_vis/
 summary_vis_cluster/
 checkpoints
+Checkpoint
 checkpoints_cluster
 vis/
 train/tmp.zip
@@ -34,7 +35,6 @@ third-parties_outside/adobe_svbrdf-master/train_list_cs.txt
 third_parties_outside/apex
 third_parties_outside/YOGO
 third_parties_outside/VirtualObjectInsertion
-third_parties_outside/repo_zhengqinCVPR/InverseRenderingOfIndoorScene
 tmp.py
 tmp.pickle
 notebooks/scene_mesh_debug*.obj
